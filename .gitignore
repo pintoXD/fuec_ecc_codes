@@ -1,0 +1,4 @@
+fuec_002_env/*
+__pycache__/*
+.vscode/*
+*.pyc
