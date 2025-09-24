@@ -158,7 +158,7 @@ class FUECCode:
     columns: Tuple[int, ...]  # length n, each an r-bit int column of H
     correctable_map: Dict[int, ErrorPattern]  # syndrome -> error vector (correctable)
 
-    def encode(self, data_bits: Sequence[int]) -> List[int]:
+    def encode(self, data_bits: Sequence[int], verbose: bool = False) -> List[int]:
         if len(data_bits) != self.k:
             raise ValueError(f"Expected {self.k} data bits, got {len(data_bits)}")
         # Build full codeword initialized with data bits in their positions.
@@ -176,6 +176,9 @@ class FUECCode:
         # Place parity bits: parity_positions are associated to unit vectors e_j.
         # s currently equals H * b^T for b without parity. To achieve Hb^T=0, we need to
         # set p such that H_p * p^T = s, knowing H_p = I, thus p = s.
+        # Optional: print parity vector p (bits j=0..r-1)
+        if verbose or getattr(self, "_verbose_encode", False):
+            print("p:", [(s >> j) & 1 for j in range(self.r)])
         for j, pos in enumerate(self.parity_positions):
             cw[pos] = (s >> j) & 1
         return cw
@@ -238,10 +241,88 @@ class FUECCode:
             lines.append(row_label.format(j) + sep.join(f"{b:>{col_w}d}" for b in row))
         return "\n".join(lines)
 
+    # --- correctable_map pretty printing as XOR equations ---
+    def correctable_map_as_xor(self, per_bit: bool = True) -> str:
+        """Return the correctable_map (syndrome -> error pattern) as XOR equations.
+
+        If per_bit=True, show each syndrome bit equation: s_j = ⊕ H[j,i] for i in error pattern, with the resulting bit value.
+        Else, show compact vector equation: h[i1] ⊕ h[i2] ⊕ ... = s (binary).
+        """
+        def bin_s(val: int) -> str:
+            return format(val, f"0{self.r}b")
+
+        lines: List[str] = []
+        # sort by syndrome integer ascending for stable order
+        for s in sorted(self.correctable_map.keys()):
+            ev = self.correctable_map[s]
+            indices = ",".join(str(i) for i in ev)
+            lines.append(f"s={bin_s(s)} -> e=({indices})")
+            if per_bit:
+                for j in range(self.r):
+                    rhs_terms = " ⊕ ".join(f"H[{j},{i}]" for i in ev) if ev else "0"
+                    val = (s >> j) & 1
+                    lines.append(f"  s{j} = {rhs_terms} = {val}")
+            else:
+                rhs_terms = " ⊕ ".join(f"h[{i}]" for i in ev) if ev else "0"
+                lines.append(f"  {rhs_terms} = {bin_s(s)}")
+        return "\n".join(lines)
+
+    def logic_selectors_and_flips(self, style: str = "verilog", only_involved_bits: bool = True) -> str:
+        """Generate Boolean equations for syndrome selectors and bit flips.
+
+        - For each correctable error pattern e with constant syndrome c_e, define a selector:
+            sel_e = ∏_j XNOR(s_j, c_e,j) = ∏_j (s_j) if c_e,j=1 else (¬s_j)
+          (XNOR with 1 is s_j; with 0 is ¬s_j.)
+        - For each bit i, the flip equation is XOR of all selectors of patterns that include i:
+            flip_i = ⊕_{e: i∈e} sel_e
+
+        style: 'verilog' for Verilog-like syntax.
+        only_involved_bits: if True, emit flip_i only for bits that appear in some correctable pattern.
+        """
+        if style != "verilog":
+            raise ValueError("Only 'verilog' style is currently supported")
+
+        def sel_name(ev: ErrorPattern) -> str:
+            if not ev:
+                return "sel_e_empty"
+            return "sel_e_" + "_".join(str(i) for i in ev)
+
+        # Build mapping from bit index -> list of selectors that include it
+        involved_bits: Dict[int, List[str]] = {}
+        lines: List[str] = []
+        lines.append("// Syndrome signals: s0..s{r-1}")
+        # Emit selectors
+        for s_val in sorted(self.correctable_map.keys()):
+            ev = self.correctable_map[s_val]
+            name = sel_name(ev)
+            # For each row j, term is s_j if c bit is 1, else ~s_j
+            terms: List[str] = []
+            for j in range(self.r):
+                bit = (s_val >> j) & 1
+                terms.append(f"s{j}" if bit == 1 else f"~s{j}")
+            conj = " & ".join(terms) if terms else "1'b1"
+            lines.append(f"// s = {format(s_val, f'0{self.r}b')}  e = {ev}")
+            lines.append(f"wire {name} = {conj};")
+            for i in ev:
+                involved_bits.setdefault(i, []).append(name)
+
+        # Emit flip equations
+        target_bits = sorted(involved_bits.keys()) if only_involved_bits else list(range(self.n))
+        lines.append("")
+        lines.append("// Flip signals per bit (XOR of matching selectors)")
+        for i in target_bits:
+            sels = involved_bits.get(i, [])
+            if not sels:
+                expr = "1'b0"
+            else:
+                expr = " ^ ".join(sels)
+            lines.append(f"wire flip_{i} = {expr};  // corrected bit: r[{i}] ^ flip_{i}")
+        return "\n".join(lines)
+
     # --- H export helpers ---
     def H_to_csv(self, path: str, include_header: bool = True, delimiter: str = ",") -> None:
         rows = self.H_matrix()
-        with open(path, "w", newline="") as f:
+        with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, delimiter=delimiter)
             if include_header:
                 writer.writerow([f"c{i}" for i in range(self.n)])
@@ -263,6 +344,91 @@ class FUECCode:
         arr = self.H_numpy(dtype=dtype)
         np.save(path, arr)
 
+    # --- Verilog export ---
+    def verilog_module(self, module_name: Optional[str] = None) -> str:
+        """Generate a complete combinational Verilog decoder module using current H and correctable_map.
+
+        The module computes s = H * r^T (GF(2)), compares s to each correctable syndrome, flips the bits
+        indicated by the matched error pattern, and outputs flags (no_error/corrected/uncorrectable).
+        """
+        N = self.n
+        R = self.r
+        name = module_name or f"fuec_decoder_{N}_{R}"
+        rows = self.H_matrix()  # r x n, row j corresponds to s[j]
+
+        def bin_row_msb_first(row: List[int]) -> str:
+            # Verilog literal MSB..LSB. Our columns are 0..N-1 left-to-right, so reverse to MSB..LSB
+            return ''.join('1' if row[i] else '0' for i in reversed(range(N)))
+
+        # Build selectors and flip mapping
+        items = sorted(self.correctable_map.items(), key=lambda kv: (kv[0], kv[1]))
+        selector_names: List[str] = []
+        per_bit_selectors: Dict[int, List[str]] = {}
+
+        def sel_name(ev: ErrorPattern) -> str:
+            return "sel_e_" + "_".join(str(i) for i in ev) if ev else "sel_e_empty"
+
+        # Header
+        lines: List[str] = []
+        lines.append("// Generated by FUECCode.verilog_module")
+        lines.append(f"module {name} (")
+        lines.append("    input  wire [%d:0] r," % (N - 1))
+        lines.append("    output wire [%d:0] s," % (R - 1))
+        lines.append("    output wire [%d:0] r_fix," % (N - 1))
+        lines.append("    output wire        no_error,")
+        lines.append("    output wire        corrected,")
+        lines.append("    output wire        uncorrectable")
+        lines.append(");\n")
+
+        # H rows
+        lines.append("    // Parity-check matrix rows HROWj (bit i true means r[i] participates in s[j])")
+        for j, row in enumerate(rows):
+            lines.append(f"    localparam [{N-1}:0] HROW{j} = {N}'b{bin_row_msb_first(row)};")
+        lines.append("")
+
+        # Syndrome
+        lines.append("    // Syndrome computation s[j] = ^(r & HROWj)")
+        for j in range(R):
+            lines.append(f"    assign s[{j}] = ^(r & HROW{j});")
+        lines.append("")
+
+        # Selectors
+        lines.append("    // Selectors for correctable patterns (XNOR equality: &(s ^~ SVAL))")
+        for s_val, ev in items:
+            sval_bin = format(s_val, f"0{R}b")
+            sparam = f"SVAL_{sel_name(ev)}"
+            sel = sel_name(ev)
+            lines.append(f"    localparam [{R-1}:0] {sparam} = {R}'b{sval_bin};  wire {sel} = &(s ^~ {sparam});  // e={ev}")
+            selector_names.append(sel)
+            for i in ev:
+                per_bit_selectors.setdefault(i, []).append(sel)
+        lines.append("")
+
+        # Flip wires and r_fix
+        lines.append("    // Flip signals per bit and corrected output")
+        for i in range(N):
+            sels = per_bit_selectors.get(i, [])
+            expr = " ^ ".join(sels) if sels else "1'b0"
+            lines.append(f"    wire flip_{i} = {expr};")
+        for i in range(N):
+            lines.append(f"    assign r_fix[{i}] = r[{i}] ^ flip_{i};")
+        lines.append("")
+
+        # Status
+        any_sel_expr = " | ".join(selector_names) if selector_names else "1'b0"
+        lines.append("    // Status flags")
+        lines.append("    assign no_error = ~(|s);")
+        lines.append(f"    wire any_selector = {any_sel_expr};")
+        lines.append("    assign corrected = any_selector;")
+        lines.append("    assign uncorrectable = (|s) & ~any_selector;")
+        lines.append("")
+        lines.append("endmodule")
+        return "\n".join(lines)
+
+    def to_verilog(self, path: str, module_name: Optional[str] = None) -> None:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(self.verilog_module(module_name=module_name))
+
 
 class FUECBuilder:
     def __init__(self, k: int, specs: List[ControlSpec], data_positions: Optional[Sequence[int]] = None,
@@ -280,7 +446,7 @@ class FUECBuilder:
             self._parity_positions_template = tuple(parity_positions)
         self.data_positions = tuple(int(x) for x in data_positions)
 
-    def _enumerate_required_sets(self, n: int, parity_positions: Sequence[int]) -> Tuple[Set[ErrorPattern], Set[ErrorPattern]]:
+    def _enumerate_required_sets(self, _n: int, parity_positions: Sequence[int]) -> Tuple[Set[ErrorPattern], Set[ErrorPattern]]:
         """Return (E_plus, Delta) sets as sets of error patterns (tuples of indices).
         Add single parity-bit errors to detection set to avoid miscorrection on parity bit flips.
         """
@@ -373,7 +539,7 @@ class FUECBuilder:
             return True
 
         # Random attempts
-        for attempt in range(max_attempts):
+        for _ in range(max_attempts):
             # Assign random labels to all data positions
             # We can enforce that data columns for single-correct areas are unique to ease search
             self.rng.shuffle(allowed_labels)
@@ -439,41 +605,54 @@ def make_example_code() -> FUECCode:
     # ]
     # builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1234))
     
-    # k = 12
-    # r_bits = 6
-    # area_a = Area("A", tuple(range(0, 4)))
-    # area_b = Area("B", tuple(range(4, 8)))
-    # area_c = Area("C", tuple(range(8, 16)))
-    # specs = [
-    #     ControlSpec(
-    #         area=area_a,
-    #         correct=["single", "double_adjacent"],
-    #         detect=["burst==L", "double"],
-    #         params={"L": 3},
-    #     ),
-    #     ControlSpec(
-    #         area=area_b,
-    #         correct=["single", "double_adjacent"],
-    #         detect=[]
-    #     ),
-    #     ControlSpec(
-    #         area=area_c,
-    #         correct=["single"],
-    #         detect=["double_adjacent"]
-    #     ),
-    # ]
+    example_no = 1
+    if example_no == 1:
+        k = 12
+        r_bits = 6
+        area_a = Area("A", tuple(range(0, 4)))
+        area_b = Area("B", tuple(range(4, 8)))
+        area_c = Area("C", tuple(range(8, 16)))
+        specs = [
+            ControlSpec(
+                area=area_a,
+                correct=["single", "double_adjacent"],
+                detect=["burst==L", "double"],
+                params={"L": 3},
+            ),
+            ControlSpec(
+                area=area_b,
+                correct=["single", "double_adjacent"],
+                detect=[]
+            ),
+            ControlSpec(
+                area=area_c,
+                correct=["single"],
+                detect=["double_adjacent"]
+            ),
+        ]
+    elif example_no == 2:
+        k = 8
+        r_bits = 4
+        area_a = Area("A", tuple(range(0, 8)))
+        specs = [
+            ControlSpec(
+                area=area_a,
+                correct=["single"],
+                detect=["double_adjacent", "burst<=L"],
+                params={"L": 3},
+            ),
+        ]
+    else:
+        k = 16
+        r_bits = 12
+        area_a = Area("A", tuple(range(0, 8)))
+        area_b = Area("B", tuple(range(8, 16)))
+        specs = [
+            ControlSpec(area=area_a, correct=["single", "double_adjacent"], detect=[]),
+            ControlSpec(area=area_b, correct=[], detect=["single"]),
+        ]
     
-    k = 8
-    r_bits = 4
-    area_a = Area("A", tuple(range(0, 8)))
-    specs = [
-        ControlSpec(
-            area=area_a,
-            correct=["single"],
-            detect=["double_adjacent", "burst<=L"],
-            params={"L": 3},
-        ),
-    ]
+    
     builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1234))
 
     return builder.build(max_r=r_bits, max_attempts_per_r=100000)
@@ -510,6 +689,10 @@ def main_cli() -> None:
     parser.add_argument("--print-H", dest="print_H", action="store_true", help="Print the H matrix after building the code")
     parser.add_argument("--dump-H-csv", dest="dump_H_csv", type=str, default=None, help="Path to write H as CSV (rows are parity-check rows)")
     parser.add_argument("--dump-H-npy", dest="dump_H_npy", type=str, default=None, help="Path to write H as NumPy .npy (requires numpy)")
+    parser.add_argument("--print-lut-xor", dest="print_lut_xor", action="store_true", help="Print the correctable_map as XOR equations")
+    parser.add_argument("--print-logic", dest="print_logic", action="store_true", help="Print Boolean selector and flip equations (Verilog-style)")
+    parser.add_argument("--dump-verilog", dest="dump_verilog", type=str, default=None, help="Path to write a complete Verilog decoder module (.v)")
+    parser.add_argument("--print-p", dest="print_p", action="store_true", help="When encoding in demo, also print the parity vector p")
     args = parser.parse_args()
 
     if args.example:
@@ -518,32 +701,39 @@ def main_cli() -> None:
         if args.print_H:
             print(f"H matrix (rows r0..r{code.r-1}, columns 0..{code.n-1}):")
             print(code.H_as_str())
+        if args.print_lut_xor:
+            print("Correctable map as XOR equations:")
+            print(code.correctable_map_as_xor(per_bit=True))
         if args.dump_H_csv:
             code.H_to_csv(args.dump_H_csv)
             print(f"Wrote H to CSV: {args.dump_H_csv}")
         if args.dump_H_npy:
             code.H_to_npy(args.dump_H_npy)
             print(f"Wrote H to NPY: {args.dump_H_npy}")
+        if args.dump_verilog:
+            code.to_verilog(args.dump_verilog)
+            print(f"Wrote Verilog module: {args.dump_verilog}")
+        # Demo encode/decode
         data = [random.randint(0, 1) for _ in range(code.k)]
-        cw = code.encode(data)
+        cw = code.encode(data, verbose=args.print_p)
         print("Data:", data)
         print("Codeword:", cw)
         # Inject an error in area A (single)
         err_pos = 3
         rcv = list(cw)
         rcv[err_pos] ^= 1
-        corrected, ok, ev = code.decode(rcv)
+        _, ok, ev = code.decode(rcv)
         print(f"Injected single at {err_pos}; decoded ok={ok}, ev={ev}")
         # Inject a double-adjacent error in area A
         rcv2 = list(cw)
         rcv2[5] ^= 1
         rcv2[6] ^= 1
-        corrected2, ok2, ev2 = code.decode(rcv2)
+        _, ok2, ev2 = code.decode(rcv2)
         print(f"Injected adj(5,6); decoded ok={ok2}, ev={ev2}")
         # Inject a single error in area B (detect only)
         rcv3 = list(cw)
         rcv3[7] ^= 1
-        corrected3, ok3, ev3 = code.decode(rcv3)
+        _, ok3, ev3 = code.decode(rcv3)
         print(f"Injected single at 7; decoded ok={ok3}, ev={ev3}")
     else:
         print("Run with --example for a quick demo.")
@@ -553,12 +743,27 @@ def main_cli() -> None:
         if args.print_H:
             print(f"H matrix (rows r0..r{code.r-1}, columns 0..{code.n-1}):")
             print(code.H_as_str())
+        if args.print_lut_xor:
+            print("Correctable map as XOR equations:")
+            print(code.correctable_map_as_xor())
+        if args.print_logic:
+            print("Boolean selector and flip equations (Verilog-style):")
+            print(code.logic_selectors_and_flips())
         if hasattr(args, "dump_H_csv") and args.dump_H_csv:
             code.H_to_csv(args.dump_H_csv)
             print(f"Wrote H to CSV: {args.dump_H_csv}")
         if hasattr(args, "dump_H_npy") and args.dump_H_npy:
             code.H_to_npy(args.dump_H_npy)
             print(f"Wrote H to NPY: {args.dump_H_npy}")
+        if hasattr(args, "dump_verilog") and args.dump_verilog:
+            code.to_verilog(args.dump_verilog)
+            print(f"Wrote Verilog module: {args.dump_verilog}")
+        # If the user explicitly asked to print p, run a tiny encode to display it
+        if args.print_p:
+            data = [random.randint(0, 1) for _ in range(code.k)]
+            cw = code.encode(data, verbose=True)
+            print("Data:", data)
+            print("Codeword:", cw)
 
 
 if __name__ == "__main__":
