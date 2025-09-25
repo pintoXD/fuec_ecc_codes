@@ -722,6 +722,8 @@ class FUECBuilder:
             # Helper: syndrome of an error pattern
             def syn(ev: ErrorPattern) -> int:
                 s = 0
+                # print(f"Columns length: {len(columns)}")
+                # print(f"ev length: {len(ev)}")
                 for i in ev:
                     s ^= columns[i]
                 return s
@@ -785,6 +787,35 @@ class FUECBuilder:
         E_plus, _ = self._enumerate_required_sets(self.k + tmp_r, parity_positions)
         lb = self._min_r_required(len(E_plus))
         r_start = max(min_r or 0, lb)
+        orig_r_start = r_start
+
+        # Ensure r is large enough so that all user-declared area indices fit inside n.
+        # For the common 'tail' parity layout, n = k + r. If any area references an
+        # index >= k + r_start, we must raise r_start; otherwise enumeration of error
+        # patterns will include out-of-range indices causing IndexError during column
+        # access. This situation occurs when the user declares areas that include
+        # (anticipated) parity bit positions while also allowing the builder to start
+        # the search at too small an r.
+        if self._parity_positions_template == "tail":
+            max_area_index = -1
+            for spec in self.specs:
+                for idx in spec.area.indices:
+                    if idx < 0:
+                        raise ValueError(f"Area index {idx} must be non-negative")
+                    if idx > max_area_index:
+                        max_area_index = idx
+            if max_area_index >= 0:
+                required_r_for_indices = max(0, (max_area_index + 1) - self.k)
+                if required_r_for_indices > r_start:
+                    r_start = required_r_for_indices
+                    # Emit an informational note so users understand why r increased.
+                    if orig_r_start != r_start:
+                        print(
+                            f"[FUECBuilder] Adjusted r_start from {orig_r_start} to {r_start} to cover area index {max_area_index} (n = k + r must exceed {max_area_index})."
+                        )
+        # (If a custom parity_positions layout was provided we assume caller ensured
+        # indices are in range of that layout.)
+        print(f"FUECBuilder: k={self.k}, |E+|={len(E_plus)}, min_r={r_start}, max_r={max_r}, data_positions={self.data_positions}, parity_positions_template={self._parity_positions_template}")
         for r in range(r_start, max_r + 1):
             code = self._try_build_for_r(r, max_attempts_per_r, parity_positions)
             if code is not None:
@@ -838,7 +869,7 @@ def make_example_code() -> FUECCode:
     elif example_no == 2:
         k = 8
         r_bits = 5
-        area_a = Area("A", tuple(range(0, 12)))
+        area_a = Area("A", tuple(range(0, 13)))
         specs = [
             ControlSpec(
                 area=area_a,
@@ -859,7 +890,7 @@ def make_example_code() -> FUECCode:
     
     builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1234))
 
-    return builder.build(max_r=r_bits, max_attempts_per_r=100000)
+    return builder.build(max_r=r_bits, max_attempts_per_r=1000000)
 
 def make_quick_code() -> FUECCode:
     """Build a small, easy spec quickly for demos and dumps.

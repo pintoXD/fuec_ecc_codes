@@ -199,15 +199,16 @@ def test_example_build_and_basic_decode_23_16():
         assert corrected == rcv  # No correction
 
 
-def test_example_build_and_basic_decode_12_8():
+def test_example_build_and_basic_decode_13_8():
     k = 8
-    area_a = Area("A", tuple(range(0, 12)))
+    area_a = Area("A", tuple(range(0, 13)))
+    print(f"Area A indices: {area_a.indices}")
     specs = [
         ControlSpec(area=area_a, correct=["single"], detect=["double"], params={}),
         # ControlSpec(area=area_a, correct=["single"], detect=["burst==L"], params={"L": 2}),
     ]
     builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1))
-    code = builder.build(max_r=5, max_attempts_per_r=100000)
+    code = builder.build(max_r=5, max_attempts_per_r=1000000)
     assert code.k == k
     print(f"Achieved r = {code.r}") 
     assert code.r >= 1
@@ -224,6 +225,13 @@ def test_example_build_and_basic_decode_12_8():
     for i in area_a.indices:
         rcv = flip_bits(cw, [i])
         corrected, ok, ev = code.decode(rcv)
+        # print(f"Error positions: {[i]}")
+        # print(f"data:      {data}")
+        # print(f"rcv:       {rcv}")
+        # print(f"corrected: {corrected}")
+        # print(f"ok: {ok}")
+        # print(f"Output of ev: {ev}")
+        
         assert ok
         assert code.syndrome(corrected) == 0
         # print(f"Output of ev: {ev}")
@@ -261,6 +269,7 @@ def test_example_build_and_basic_decode_12_8():
         # assert ev is not None
         print(f"Error positions: {[i, i + bit_error_offset]}")
         print(f"data:      {data}")
+        print(f"cw:        {cw}")
         print(f"rcv:       {rcv}")
         print(f"corrected: {corrected}")
         print(f"ok: {ok}")

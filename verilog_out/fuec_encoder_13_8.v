@@ -7,15 +7,15 @@ module fuec_encoder_13_5 (
 
     // Parity equations
     // parity bit p0 at cw[8]
-    assign p[0] = d[0] ^ d[1] ^ d[3] ^ d[4] ^ d[6] ^ d[7];
+    assign p[0] = d[0] ^ d[1] ^ d[2] ^ d[4] ^ d[5] ^ d[6];
     // parity bit p1 at cw[9]
-    assign p[1] = d[1] ^ d[5] ^ d[6] ^ d[7];
+    assign p[1] = d[0] ^ d[2] ^ d[5] ^ d[6] ^ d[7];
     // parity bit p2 at cw[10]
-    assign p[2] = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[5];
+    assign p[2] = d[1] ^ d[3] ^ d[4] ^ d[5] ^ d[6] ^ d[7];
     // parity bit p3 at cw[11]
-    assign p[3] = d[0] ^ d[3] ^ d[5] ^ d[6] ^ d[7];
+    assign p[3] = d[0] ^ d[1] ^ d[3] ^ d[5] ^ d[7];
     // parity bit p4 at cw[12]
-    assign p[4] = d[0] ^ d[1] ^ d[2] ^ d[4] ^ d[6];
+    assign p[4] = d[2] ^ d[3] ^ d[4] ^ d[5];
 
     // Codeword assembly
     assign cw[0] = d[0];

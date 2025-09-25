@@ -9,11 +9,11 @@ module fuec_decoder_13_5 (
 );
 
     // Parity-check matrix rows HROWj (bit i true means r[i] participates in s[j])
-    localparam [12:0] HROW0 = 13'b0000111011011;
-    localparam [12:0] HROW1 = 13'b0001011100010;
-    localparam [12:0] HROW2 = 13'b0010000101111;
-    localparam [12:0] HROW3 = 13'b0100011101001;
-    localparam [12:0] HROW4 = 13'b1000001010111;
+    localparam [12:0] HROW0 = 13'b0000101110111;
+    localparam [12:0] HROW1 = 13'b0001011100101;
+    localparam [12:0] HROW2 = 13'b0010011111010;
+    localparam [12:0] HROW3 = 13'b0100010101011;
+    localparam [12:0] HROW4 = 13'b1000000111100;
 
     // Syndrome computation s[j] = ^(r & HROWj)
     assign s[0] = ^(r & HROW0);
@@ -26,15 +26,16 @@ module fuec_decoder_13_5 (
     localparam [4:0] SVAL_sel_e_8 = 5'b00001;  wire sel_e_8 = &(s ^~ SVAL_sel_e_8);  // e=(8,)
     localparam [4:0] SVAL_sel_e_9 = 5'b00010;  wire sel_e_9 = &(s ^~ SVAL_sel_e_9);  // e=(9,)
     localparam [4:0] SVAL_sel_e_10 = 5'b00100;  wire sel_e_10 = &(s ^~ SVAL_sel_e_10);  // e=(10,)
+    localparam [4:0] SVAL_sel_e_6 = 5'b00111;  wire sel_e_6 = &(s ^~ SVAL_sel_e_6);  // e=(6,)
     localparam [4:0] SVAL_sel_e_11 = 5'b01000;  wire sel_e_11 = &(s ^~ SVAL_sel_e_11);  // e=(11,)
-    localparam [4:0] SVAL_sel_e_7 = 5'b01011;  wire sel_e_7 = &(s ^~ SVAL_sel_e_7);  // e=(7,)
-    localparam [4:0] SVAL_sel_e_3 = 5'b01101;  wire sel_e_3 = &(s ^~ SVAL_sel_e_3);  // e=(3,)
-    localparam [4:0] SVAL_sel_e_5 = 5'b01110;  wire sel_e_5 = &(s ^~ SVAL_sel_e_5);  // e=(5,)
-    localparam [4:0] SVAL_sel_e_4 = 5'b10001;  wire sel_e_4 = &(s ^~ SVAL_sel_e_4);  // e=(4,)
-    localparam [4:0] SVAL_sel_e_2 = 5'b10100;  wire sel_e_2 = &(s ^~ SVAL_sel_e_2);  // e=(2,)
-    localparam [4:0] SVAL_sel_e_1 = 5'b10111;  wire sel_e_1 = &(s ^~ SVAL_sel_e_1);  // e=(1,)
-    localparam [4:0] SVAL_sel_e_6 = 5'b11011;  wire sel_e_6 = &(s ^~ SVAL_sel_e_6);  // e=(6,)
-    localparam [4:0] SVAL_sel_e_0 = 5'b11101;  wire sel_e_0 = &(s ^~ SVAL_sel_e_0);  // e=(0,)
+    localparam [4:0] SVAL_sel_e_0 = 5'b01011;  wire sel_e_0 = &(s ^~ SVAL_sel_e_0);  // e=(0,)
+    localparam [4:0] SVAL_sel_e_1 = 5'b01101;  wire sel_e_1 = &(s ^~ SVAL_sel_e_1);  // e=(1,)
+    localparam [4:0] SVAL_sel_e_7 = 5'b01110;  wire sel_e_7 = &(s ^~ SVAL_sel_e_7);  // e=(7,)
+    localparam [4:0] SVAL_sel_e_12 = 5'b10000;  wire sel_e_12 = &(s ^~ SVAL_sel_e_12);  // e=(12,)
+    localparam [4:0] SVAL_sel_e_2 = 5'b10011;  wire sel_e_2 = &(s ^~ SVAL_sel_e_2);  // e=(2,)
+    localparam [4:0] SVAL_sel_e_4 = 5'b10101;  wire sel_e_4 = &(s ^~ SVAL_sel_e_4);  // e=(4,)
+    localparam [4:0] SVAL_sel_e_3 = 5'b11100;  wire sel_e_3 = &(s ^~ SVAL_sel_e_3);  // e=(3,)
+    localparam [4:0] SVAL_sel_e_5 = 5'b11111;  wire sel_e_5 = &(s ^~ SVAL_sel_e_5);  // e=(5,)
 
     // Flip signals per bit and corrected output
     wire flip_0 = sel_e_0;
@@ -49,7 +50,7 @@ module fuec_decoder_13_5 (
     wire flip_9 = sel_e_9;
     wire flip_10 = sel_e_10;
     wire flip_11 = sel_e_11;
-    wire flip_12 = 1'b0;
+    wire flip_12 = sel_e_12;
     assign r_fix[0] = r[0] ^ flip_0;
     assign r_fix[1] = r[1] ^ flip_1;
     assign r_fix[2] = r[2] ^ flip_2;
@@ -66,7 +67,7 @@ module fuec_decoder_13_5 (
 
     // Status flags
     assign no_error = ~(|s);
-    wire any_selector = sel_e_8 | sel_e_9 | sel_e_10 | sel_e_11 | sel_e_7 | sel_e_3 | sel_e_5 | sel_e_4 | sel_e_2 | sel_e_1 | sel_e_6 | sel_e_0;
+    wire any_selector = sel_e_8 | sel_e_9 | sel_e_10 | sel_e_6 | sel_e_11 | sel_e_0 | sel_e_1 | sel_e_7 | sel_e_12 | sel_e_2 | sel_e_4 | sel_e_3 | sel_e_5;
     assign corrected = any_selector;
     assign uncorrectable = (|s) & ~any_selector;
 

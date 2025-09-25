@@ -1,4 +1,5 @@
 fuec_002_env/*
 __pycache__/*
+**/obj_dir/*
 .vscode/*
 *.pyc
