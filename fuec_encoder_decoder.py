@@ -837,14 +837,13 @@ def make_example_code() -> FUECCode:
         ]
     elif example_no == 2:
         k = 8
-        r_bits = 4
-        area_a = Area("A", tuple(range(0, 8)))
+        r_bits = 5
+        area_a = Area("A", tuple(range(0, 12)))
         specs = [
             ControlSpec(
                 area=area_a,
                 correct=["single"],
-                detect=["double_adjacent", "burst<=L"],
-                params={"L": 3},
+                detect=["double"],
             ),
         ]
     else:

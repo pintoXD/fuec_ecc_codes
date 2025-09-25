@@ -201,12 +201,13 @@ def test_example_build_and_basic_decode_23_16():
 
 def test_example_build_and_basic_decode_12_8():
     k = 8
-    area_a = Area("A", tuple(range(0, 8)))
+    area_a = Area("A", tuple(range(0, 12)))
     specs = [
-        ControlSpec(area=area_a, correct=["single"], detect=["double_adjacent"]),
+        ControlSpec(area=area_a, correct=["single"], detect=["double"], params={}),
+        # ControlSpec(area=area_a, correct=["single"], detect=["burst==L"], params={"L": 2}),
     ]
     builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1))
-    code = builder.build(max_r=4, max_attempts_per_r=10000)
+    code = builder.build(max_r=5, max_attempts_per_r=100000)
     assert code.k == k
     print(f"Achieved r = {code.r}") 
     assert code.r >= 1
@@ -233,14 +234,24 @@ def test_example_build_and_basic_decode_12_8():
             continue
         rcv = flip_bits(cw, [i, i + 1])
         corrected, ok, ev = code.decode(rcv)
+        
+        # print(f"Error positions: {[i, i + 1]}")
+        # print(f"data:      {data}")
+        # print(f"rcv:       {rcv}")
+        # print(f"corrected: {corrected}")
+        # print(f"ok:        {ok}")
+        # print(f"ev:        {ev}")
+        
+        
         assert not ok
         assert ev is None
         assert corrected == rcv  # No correction
+        
 
     # All adjacent random errors in area A must not be detected and not be corrected.
     for i in range(min(area_a.indices), max(area_a.indices)):
 
-        bit_error_offset = random.randint(0, code.n - 1)
+        bit_error_offset = random.randint(1, code.n - 1)
 
         if i + bit_error_offset not in set(area_a.indices):
             continue
@@ -249,10 +260,13 @@ def test_example_build_and_basic_decode_12_8():
         # assert ok
         # assert ev is not None
         print(f"Error positions: {[i, i + bit_error_offset]}")
-        print(f"data: {data}")
+        print(f"data:      {data}")
+        print(f"rcv:       {rcv}")
         print(f"corrected: {corrected}")
         print(f"ok: {ok}")
         print(f"Output of ev: {ev}")
-        
+        assert not ok
+        assert ev is None
+        assert corrected == rcv  # No correction
 
         # assert corrected == rcv  # No correction
