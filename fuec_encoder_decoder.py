@@ -395,7 +395,7 @@ class FUECCode:
           - output [N-1:0] cw (full codeword with data placed at data_positions and parity at parity_positions)
         """
         K, R, N = self.k, self.r, self.n
-        name = module_name or f"fuec_encoder_{N}_{R}"
+        name = module_name or f"fuec_encoder_{N}_{K}"
 
         # Build assigns for p from d
         p_assigns = self.encoder_equations_verilog(mode="dp", d_bus=d_bus, p_bus=p_bus, b_bus=cw_bus).splitlines()
@@ -439,7 +439,7 @@ class FUECCode:
         - Embeds a set of data vectors and expected p and cw, checks outputs match.
         """
         K, R, N = self.k, self.r, self.n
-        mod_name = module_name or f"fuec_encoder_{N}_{R}"
+        mod_name = module_name or f"fuec_encoder_{N}_{K}"
         tname = tb_name or f"tb_{mod_name}"
 
         # Prepare vectors: include a few deterministic cases and optional randoms
@@ -558,7 +558,8 @@ class FUECCode:
         """
         N = self.n
         R = self.r
-        name = module_name or f"fuec_decoder_{N}_{R}"
+        K = self.k
+        name = module_name or f"fuec_decoder_{N}_{K}"
         rows = self.H_matrix()  # r x n, row j corresponds to s[j]
 
         def bin_row_msb_first(row: List[int]) -> str:
@@ -815,7 +816,7 @@ class FUECBuilder:
                         )
         # (If a custom parity_positions layout was provided we assume caller ensured
         # indices are in range of that layout.)
-        print(f"FUECBuilder: k={self.k}, |E+|={len(E_plus)}, min_r={r_start}, max_r={max_r}, data_positions={self.data_positions}, parity_positions_template={self._parity_positions_template}")
+        print(f"FUECBuilder: k={self.k}, |E+|={len(E_plus)}, min_r={min_r}, max_r={max_r}, r_start={r_start} , data_positions={self.data_positions}, parity_positions_template={self._parity_positions_template}")
         for r in range(r_start, max_r + 1):
             code = self._try_build_for_r(r, max_attempts_per_r, parity_positions)
             if code is not None:
@@ -880,12 +881,12 @@ def make_example_code() -> FUECCode:
     elif example_no == 3:
         k = 8
         r_bits = 4
-        area_a = Area("A", tuple(range(0, 12)))
+        area_a = Area("A", tuple(range(0, 8)))
         specs = [
             ControlSpec(
                 area=area_a,
                 correct=["single"],
-                detect=[],
+                detect=["double_adjacent"],
             ),
         ]
     else:
@@ -901,7 +902,7 @@ def make_example_code() -> FUECCode:
     
     builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1234))
 
-    return builder.build(max_r=r_bits, max_attempts_per_r=1000000)
+    return builder.build(min_r=r_bits, max_r=r_bits, max_attempts_per_r=1000000)
 
 def make_quick_code() -> FUECCode:
     """Build a small, easy spec quickly for demos and dumps.
