@@ -125,7 +125,7 @@ module tb_fuec_decoder_interface;
             #5;
             if (encoded_data_out[7:0] == decoder_data_out) begin
                 // $display("Error at position %0d corrected successfully.", i);
-                $display("Pos Error %d: [%b] corrected", i, pos_error);
+                $display("Pos Error %0d: [%b] corrected", i, pos_error);
                 counter++;
             end else begin
                 $display("Error at position %0d NOT corrected.", i);
@@ -135,8 +135,22 @@ module tb_fuec_decoder_interface;
 
         $display("Single-bit error correction success rate: %0d/%0d", counter, indexer);
 
+        $display("\n\n ------------------------------- \n\n");
 
-
+        counter = 0;
+        indexer = 13;
+        for (int i = 8; i < indexer; i++) begin
+            dirty_encoded_data_out = encoded_data_out;
+            dirty_encoded_data_out[i] = ~dirty_encoded_data_out[i]; // Introduce an error
+            #5;
+            $display("Error at position %0d (parity bit)", i);
+            $display("data:       %0b", dirty_encoded_data_out[7:0]);
+            $display("redundancy: %0b", dirty_encoded_data_out[11:8]);
+            $display("data_dec:   %0b", decoder_data_out);
+            $display("pos_error:  %0b", pos_error);
+            $display("\n\n");
+            #10;
+        end
 
     end
 

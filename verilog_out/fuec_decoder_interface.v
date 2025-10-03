@@ -23,32 +23,25 @@ module fuec_decoder_interface (
 
     assign data_in = {redundancy, data};
 
-    localparam [3:0] SVAL_sel_e_8 = 4'b0001; 
-    localparam [3:0] SVAL_sel_e_9 = 4'b0010;  
-    localparam [3:0] SVAL_sel_e_10 = 4'b0100; 
-    localparam [3:0] SVAL_sel_e_0 = 4'b0110;  
-    localparam [3:0] SVAL_sel_e_2 = 4'b0111;  
-    localparam [3:0] SVAL_sel_e_11 = 4'b1000; 
-    localparam [3:0] SVAL_sel_e_5 = 4'b1001;  
-    localparam [3:0] SVAL_sel_e_3 = 4'b1010;  
-    localparam [3:0] SVAL_sel_e_6 = 4'b1011;  
-    localparam [3:0] SVAL_sel_e_4 = 4'b1101;  
-    localparam [3:0] SVAL_sel_e_7 = 4'b1110;  
-    localparam [3:0] SVAL_sel_e_1 = 4'b1111;  
+    // Selectors for correctable patterns (XNOR equality: &(s ^~ SVAL))
+    localparam [3:0] SVAL_sel_e_7 = 4'b0011; 
+    localparam [3:0] SVAL_sel_e_4 = 4'b0101;
+    localparam [3:0] SVAL_sel_e_0 = 4'b0111; 
+    localparam [3:0] SVAL_sel_e_6 = 4'b1010; 
+    localparam [3:0] SVAL_sel_e_3 = 4'b1100; 
+    localparam [3:0] SVAL_sel_e_2 = 4'b1101; 
+    localparam [3:0] SVAL_sel_e_5 = 4'b1110; 
+    localparam [3:0] SVAL_sel_e_1 = 4'b1111; 
 
+    assign pos_error[0] = &(syndrome_out ^~ SVAL_sel_e_0);  // e=(0,)
+    assign pos_error[1] = &(syndrome_out ^~ SVAL_sel_e_1);  // e=(1,)
+    assign pos_error[2] = &(syndrome_out ^~ SVAL_sel_e_2);  // e=(2,)
+    assign pos_error[3] = &(syndrome_out ^~ SVAL_sel_e_3);  // e=(3,)
+    assign pos_error[4] = &(syndrome_out ^~ SVAL_sel_e_4);  // e=(4,)
+    assign pos_error[5] = &(syndrome_out ^~ SVAL_sel_e_5);  // e=(5,)
+    assign pos_error[6] = &(syndrome_out ^~ SVAL_sel_e_6);  // e=(6,)
+    assign pos_error[7] = &(syndrome_out ^~ SVAL_sel_e_7);  // e=(7,)
 
-    assign pos_error[0] = &(syndrome_out ^~ SVAL_sel_e_0);
-    assign pos_error[1] = &(syndrome_out ^~ SVAL_sel_e_1);
-    assign pos_error[2] = &(syndrome_out ^~ SVAL_sel_e_2);
-    assign pos_error[3] = &(syndrome_out ^~ SVAL_sel_e_3);
-    assign pos_error[4] = &(syndrome_out ^~ SVAL_sel_e_4);
-    assign pos_error[5] = &(syndrome_out ^~ SVAL_sel_e_5);
-    assign pos_error[6] = &(syndrome_out ^~ SVAL_sel_e_6);
-    assign pos_error[7] = &(syndrome_out ^~ SVAL_sel_e_7);
-    // assign pos_error[8] = &(syndrome_out ^~ SVAL_sel_e_8);
-    // assign pos_error[9] = &(syndrome_out ^~ SVAL_sel_e_9);
-    // assign pos_error[10] = &(syndrome_out ^~ SVAL_sel_e_10);
-    // assign pos_error[11] = &(syndrome_out ^~ SVAL_sel_e_11);
 
     assign data_dec = decoder_data_out[7:0];
 
