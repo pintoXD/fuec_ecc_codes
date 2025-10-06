@@ -225,15 +225,17 @@ def test_example_build_and_basic_decode_12_8():
     for i in area_a.indices:
         rcv = flip_bits(cw, [i])
         corrected, ok, ev = code.decode(rcv)
-        print(f"Error positions: {[i]}")
-        print(f"data:      {data}")
-        print(f"rcv:       {rcv}")
-        print(f"corrected: {corrected}")
-        print(f"ok: {ok}")
-        print(f"Output of ev: {ev}")
+        # print(f"Error positions: {[i]}")
+        # print(f"data:      {data}")
+        # print(f"rcv:       {rcv}")
+        # print(f"corrected: {corrected}")
+        # print(f"ok: {ok}")
+        # print(f"Output of ev: {ev}")
         
         assert ok
         assert code.syndrome(corrected) == 0
+        assert ev is not None
+        assert corrected == cw  # Perfect Correction
         # print(f"Output of ev: {ev}")
 
 def test_example_build_and_basic_decode_xx_xx():
@@ -357,18 +359,18 @@ def test_example_build_and_basic_decode_13_8():
 
 def test_example_build_and_DEDEC_decode_13_8():
     k = 8
-    area_a = Area("A", tuple(range(0, 8)))
+    area_a = Area("A", tuple(range(0, 15)))
     # area_b = Area("B", tuple(range(0, 8)))
     # area_c = Area("C", tuple(range(8, 14)))
     specs = [
-        ControlSpec(area=area_a, correct=["single"], detect=["double_adjacent"], params={}), ## Correct 1-bit erros and detects 2-bit burst errors. min_r = 4
+        # ControlSpec(area=area_a, correct=["single"], detect=["double_adjacent"], params={}), ## Correct 1-bit erros and detects 2-bit burst errors. min_r = 4
         # ControlSpec(area=area_a, correct=["single", "double_adjacent"], detect=[], params={}), ## Correct up to 2-bit burst erros and detects nothing more than that. min_r = 5
         # ControlSpec(area=area_a, correct=["single", "double_adjacent", "double"], detect=[], params={}), ## Correct up to 2-bit burst erros and detects 2-bit random errors. min_r = 6
         # ControlSpec(area=area_a, correct=["single", "double_adjacent"], detect=["double"], params={}), ## Correct up to 2-bit burst erros and detects 2-bit random errors. min_r = 6
-        # ControlSpec(area=area_a, correct=["single", "double_adjacent"], detect=["burst==L"], params={"L":3}), ## Correct up to 2-bit burst erros and detects 3-bit burst errors. min_r = 7
+        ControlSpec(area=area_a, correct=["single", "double_adjacent"], detect=["span_burst==L"], params={"L": 3}), ## Correct up to 2-bit burst erros and detects 3-bit burst errors. min_r = 7
     ]
     builder = FUECBuilder(k=k, specs=specs, rng=random.Random(2506))
-    code = builder.build(min_r=3, max_r=4, max_attempts_per_r=100000)
+    code = builder.build(min_r=3, max_r=7, max_attempts_per_r=100000)
     assert code.k == k
     print(f"Achieved r = {code.r}") 
     assert code.r >= 1
@@ -383,6 +385,7 @@ def test_example_build_and_DEDEC_decode_13_8():
 
     # All singles in area A must be corrected
     # for i in range(0,14):
+    print(f"Area A indices: {area_a.indices}")
     for i in area_a.indices:
         rcv = flip_bits(cw, [i])
         corrected, ok, ev = code.decode(rcv)
@@ -412,16 +415,16 @@ def test_example_build_and_DEDEC_decode_13_8():
         # print(f"ok: {ok}")
         # print(f"Output of ev: {ev}")
 
-        assert not ok
-        assert code.syndrome(corrected) != 0
-        assert ev is None
-        assert corrected != cw  # Perfect Correction
-        # assert ok
-        # assert code.syndrome(corrected) == 0
-        # assert ev is not None
-        # assert corrected == cw  # Perfect Correction
-
-    # All double random errors in area A must be detected but must not be corrected.
+        # assert not ok
+        # assert code.syndrome(corrected) != 0
+        # assert ev is None
+        # assert corrected != cw  # Perfect Correction
+        assert ok
+        assert code.syndrome(corrected) == 0
+        assert ev is not None
+        assert corrected == cw  # Perfect Correction
+# 
+    # # All double random errors in area A must be detected but must not be corrected.
     # for i in range(min(area_a.indices), max(area_a.indices)):
     # for i in area_a.indices:
     #     for j in range(i + 2, max(area_a.indices) + 1):
@@ -448,154 +451,6 @@ def test_example_build_and_DEDEC_decode_13_8():
     #         # assert corrected == rcv  # No correction
 
     # All 3-bit burst erros in area A must be detecet and must not be corrected.
-    # for i in range(min(area_a.indices), max(area_a.indices)):
-    #     if i + 1 not in set(area_a.indices):
-    #         continue
-    #     if i + 2 not in set(area_a.indices):
-    #         continue
-
-    #     rcv_burst_101 = flip_bits(cw, [i, i + 2])
-    #     corrected, ok, ev = code.decode(rcv_burst_101)
-
-    #     print(f"Error positions burst_101: {[i, i + 2]}")
-    #     print(f"data:      {data}")
-    #     print(f"encoded:   {cw}")
-    #     print(f"rcv:       {rcv_burst_101}")
-    #     print(f"corrected: {corrected}")
-    #     print(f"ok:        {ok}")
-    #     print(f"ev:        {ev}")
-
-    #     # assert ok
-    #     # assert ev is not None
-    #     # assert corrected != rcv_burst_101  # No Correction
-    #     assert not ok
-    #     assert ev is None
-    #     assert corrected == rcv_burst_101  # No Correction
-
-    # # All 3-bit burst erros in area A must be detecet and must not be corrected.
-    # for i in range(min(area_a.indices), max(area_a.indices)):
-    #     if i + 1 not in set(area_a.indices):
-    #         continue
-    #     if i + 2 not in set(area_a.indices):
-    #         continue
-
-    #     rcv_burst_111 = flip_bits(cw, [i, i + 1, i + 2])
-    #     corrected, ok, ev = code.decode(rcv_burst_111)
-
-    #     print(f"Error positions burst_111: {[i, i + 1, i + 2]}")
-    #     print(f"data:      {data}")
-    #     print(f"rcv:       {rcv_burst_111}")
-    #     print(f"corrected: {corrected}")
-    #     print(f"ok:        {ok}")
-    #     print(f"ev:        {ev}")
-
-    #     assert not ok
-    #     assert ev is None
-    #     assert corrected == rcv_burst_111  # No Correction
-
-    # All singles in area B must be corrected
-    # area_b_indices = range(8, 15)
-    '''
-    for i in area_b.indices:
-        rcv = flip_bits(cw, [i])
-        corrected, ok, ev = code.decode(rcv)
-        print(f"Error positions: {[i]}")
-        print(f"data:      {data}")
-        print(f"encoded:   {cw}")
-        print(f"rcv:       {rcv}")
-        print(f"corrected: {corrected}")
-        print(f"ok: {ok}")
-        print(f"Output of ev: {ev}")
-
-        assert ok
-        assert code.syndrome(corrected) == 0
-        assert ev is not None
-        assert corrected == cw  # Perfect Correction
-        # print(f"Output of ev: {ev}")
-    '''
-
-def test_example_build_and_basic_decode_48_32():
-    k = 32
-    r=24
-    area_a = Area("A", tuple(range(0, 32)))
-    area_b = Area("B", tuple(range(0, 32)))
-    print(f"Area A indices: {area_a.indices}")
-    specs = [
-        # ControlSpec(area=area_a, correct=["single", "double_adjacent"], detect=["burst==L"], params={"L": 3}),
-        ControlSpec(area=area_a, correct=["single", "double_adjacent", "double"], detect=[], params={}),
-        ControlSpec(area=area_b, correct=["burst<=L"], detect=["burst==L"], params={"L": 4})
-    ]
-    builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1209))
-    code = builder.build(min_r=r, max_r=r, max_attempts_per_r=900000)
-    assert code.k == k
-    print(f"Achieved r = {code.r}") 
-    assert code.r >= 1
-
-    # Random data
-    rnd = random.Random(123)
-    data = [rnd.randint(0, 1) for _ in range(k)]
-    cw = code.encode(data)
-    assert len(cw) == code.n
-    # No error syndrome is zero
-    assert code.syndrome(cw) == 0
-
-    # All singles in area A must be corrected
-    for i in area_a.indices:
-        rcv = flip_bits(cw, [i])
-        corrected, ok, ev = code.decode(rcv)
-        # print(f"Error positions: {[i]}")
-        # print(f"data:      {data}")
-        # print(f"rcv:       {rcv}")
-        # print(f"corrected: {corrected}")
-        # print(f"ok: {ok}")
-        # print(f"Output of ev: {ev}")
-
-        assert ok
-        assert code.syndrome(corrected) == 0
-        # print(f"Output of ev: {ev}")
-
-    # All adjacent doubles in area A must be detected and corrected.
-    for i in range(min(area_a.indices), max(area_a.indices)):
-        if i + 1 not in set(area_a.indices):
-            continue
-        rcv = flip_bits(cw, [i, i + 1])
-        corrected, ok, ev = code.decode(rcv)
-
-        # print(f"Error positions: {[i, i + 1]}")
-        # print(f"data:      {data}")
-        # print(f"rcv:       {rcv}")
-        # print(f"corrected: {corrected}")
-        # print(f"ok:        {ok}")
-        # print(f"ev:        {ev}")
-
-        assert ok
-        assert ev is not None
-        assert corrected != rcv  # Correction
-        assert corrected == cw  # Perfect Correction
-
-        # All 3-bit burst erros in area A must be detecet and must be corrected.
-    for i in range(min(area_a.indices), max(area_a.indices)):
-        if i + 1 not in set(area_a.indices):
-            continue
-        if i + 2 not in set(area_a.indices):
-            continue
-
-        rcv_burst_111 = flip_bits(cw, [i, i + 1, i + 2])
-        corrected, ok, ev = code.decode(rcv_burst_111)
-
-        # print(f"Error positions burst_111: {[i, i + 1, i + 2]}")
-        # print(f"data:      {data}")
-        # print(f"rcv:       {rcv_burst_111}")
-        # print(f"corrected: {corrected}")
-        # print(f"ok:        {ok}")
-        # print(f"ev:        {ev}")
-
-        assert ok
-        assert ev is not None
-        assert corrected != rcv_burst_111  # Correction
-        assert corrected == cw  # Perfect Correction
-
-    # All 3-bit burst erros in area A must be detecet and must be corrected.
     for i in range(min(area_a.indices), max(area_a.indices)):
         if i + 2 not in set(area_a.indices):
             continue
@@ -611,22 +466,147 @@ def test_example_build_and_basic_decode_48_32():
         # print(f"ok:        {ok}")
         # print(f"ev:        {ev}")
 
+        # assert ok
+        # assert ev is not None
+        # assert corrected != rcv_burst_101  # No Correction
+        assert not ok
+        assert ev is None
+        assert corrected == rcv_burst_101  # No Correction
+
+    # All 3-bit burst erros in area A must be detecet and must not be corrected.
+    for i in range(min(area_a.indices), max(area_a.indices)):
+        if i + 2 not in set(area_a.indices):
+            continue
+
+        rcv_burst_111 = flip_bits(cw, [i, i + 1, i + 2])
+        corrected, ok, ev = code.decode(rcv_burst_111)
+
+        print(f"Error positions burst_111: {[i, i + 1, i + 2]}")
+        print(f"data:      {data}")
+        print(f"rcv:       {rcv_burst_111}")
+        print(f"corrected: {corrected}")
+        print(f"ok:        {ok}")
+        print(f"ev:        {ev}")
+
+        assert not ok
+        assert ev is None
+        assert corrected == rcv_burst_111  # No Correction
+
+    # All singles in area B must be corrected
+    # area_b_indices = range(8, 15)
+
+
+def test_example_build_and_basic_decode_48_32():
+    k = 32
+    r=16
+    area_a = Area("A", tuple(range(0, k+r)))
+    # area_b = Area("B", tuple(range(0, k+r)))
+    print(f"Area A indices: {area_a.indices}")
+    specs = [
+        ControlSpec(area=area_a, correct=["single", "span_burst<=L"], detect=[], params={"L": 4})
+        # ControlSpec(area=area_b, correct=[], detect=["span_burst==L"], params={"L": 4}),
+        # ControlSpec(area=area_a, correct=["single", "double_adjacent"], detect=["span_burst==L"], params={"L": 3}),
+        # ControlSpec(area=area_a, correct=["single", "double_adjacent"], detect=[], params={})
+    ]
+    builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1209))
+    code = builder.build(min_r=r, max_r=r, max_attempts_per_r=100000)
+    assert code.k == k
+    print(f"Achieved r = {code.r}")
+    assert code.r >= 1
+
+    # Random data
+    rnd = random.Random(123)
+    data = [rnd.randint(0, 1) for _ in range(k)]
+    cw = code.encode(data)
+    assert len(cw) == code.n
+    # No error syndrome is zero
+    assert code.syndrome(cw) == 0
+
+    # All singles in area A must be corrected
+    for i in area_a.indices:
+        rcv = flip_bits(cw, [i])
+        corrected, ok, ev = code.decode(rcv)
+        print(f"Error positions: {[i]}")
+        print(f"data:      {data}")
+        print(f"rcv:       {rcv}")
+        print(f"corrected: {corrected}")
+        print(f"ok: {ok}")
+        print(f"Output of ev: {ev}")
+
+        assert ok
+        assert code.syndrome(corrected) == 0
+        # print(f"Output of ev: {ev}")
+
+    # All adjacent doubles in area A must be detected and corrected.
+    for i in range(min(area_a.indices), max(area_a.indices)):
+        if i + 1 not in set(area_a.indices):
+            continue
+        rcv = flip_bits(cw, [i, i + 1])
+        corrected, ok, ev = code.decode(rcv)
+
+        print(f"Error positions: {[i, i + 1]}")
+        print(f"data:      {data}")
+        print(f"rcv:       {rcv}")
+        print(f"corrected: {corrected}")
+        print(f"ok:        {ok}")
+        print(f"ev:        {ev}")
+
+        assert ok
+        assert ev is not None
+        assert corrected != rcv  # Correction
+        assert corrected == cw  # Perfect Correction
+
+        # All 3-bit burst erros in area A must be detecet and must be corrected.
+    for i in range(min(area_a.indices), max(area_a.indices)):
+        if i + 2 not in set(area_a.indices):
+            continue
+
+        rcv_burst_111 = flip_bits(cw, [i, i + 1, i + 2])
+        corrected, ok, ev = code.decode(rcv_burst_111)
+
+        print(f"Error positions burst_111: {[i, i + 1, i + 2]}")
+        print(f"data:      {data}")
+        print(f"rcv:       {rcv_burst_111}")
+        print(f"corrected: {corrected}")
+        print(f"ok:        {ok}")
+        print(f"ev:        {ev}")
+
+        assert ok
+        assert ev is not None
+        assert corrected != rcv_burst_111  # Correction
+        assert corrected == cw  # Correction
+
+    # All 3-bit burst erros in area A must be detecet and must be corrected.
+    for i in range(min(area_a.indices), max(area_a.indices)):
+        if i + 2 not in set(area_a.indices):
+            continue
+
+        rcv_burst_101 = flip_bits(cw, [i, i + 2])
+        corrected, ok, ev = code.decode(rcv_burst_101)
+
+        print(f"Error positions burst_101: {[i, i + 2]}")
+        print(f"data:      {data}")
+        print(f"encoded:   {cw}")
+        print(f"rcv:       {rcv_burst_101}")
+        print(f"corrected: {corrected}")
+        print(f"ok:        {ok}")
+        print(f"ev:        {ev}")
+
+        assert ok
         assert ev is not None
         assert corrected != rcv_burst_101  # No Correction
-        assert corrected == cw  # Perfect Correction
-        assert ok
+        assert corrected == cw  # No Correction
+
         # assert ok
         # assert ev is not None
         # assert corrected != rcv_burst_101  # Correction
 
     # All 4-bit burst erros in area A must be detecet and must not be corrected.
     for i in range(min(area_a.indices), max(area_a.indices)):
-
         if i + 3 not in set(area_a.indices):
             continue
-
         rcv_burst_1001 = flip_bits(cw, [i, i + 3])
-        corrected, ok, ev = code.decode(rcv_burst_111)
+        corrected, ok, ev = code.decode(rcv_burst_1001)
 
         print(f"Error positions burst_1001: {[i, i  + 3]}")
         print(f"data:      {data}")
@@ -637,34 +617,77 @@ def test_example_build_and_basic_decode_48_32():
 
         # assert not ok
         # assert ev is None
-        # assert corrected == rcv_burst_1111  # No Correction
+        # assert corrected == rcv_burst_1001  # No Correction
+
         assert ok
         assert ev is not None
-        assert corrected == rcv_burst_1001  # No Correction
-        assert corrected != cw  # No Perfect Correction
+        assert corrected != rcv_burst_1001  # Correction
+        assert corrected == cw  # Correction
+        
+        
+    # All 4-bit burst erros in area A must be detecet and must not be corrected.
+    for i in range(min(area_a.indices), max(area_a.indices)):
+        if i + 3 not in set(area_a.indices):
+            continue
+        rcv_burst_1011 = flip_bits(cw, [i, i + 2, i + 3])
+        corrected, ok, ev = code.decode(rcv_burst_1011)
+
+        print(f"Error positions burst_1001: {[i, i + 2, i + 3]}")
+        print(f"data:      {data}")
+        print(f"rcv:       {rcv_burst_1011}")
+        print(f"corrected: {corrected}")
+        print(f"ok:        {ok}")
+        print(f"ev:        {ev}")
+
+        assert ok
+        assert ev is not None
+        assert corrected != rcv_burst_1011  # Correction
+        assert corrected == cw  # Perfect Correction
+
 
     # All 4-bit burst erros in area A must be detecet and must not be corrected.
-    # for i in range(min(area_a.indices), max(area_a.indices)):
-    #     if i + 1 not in set(area_a.indices):
-    #         continue
-    #     if i + 2 not in set(area_a.indices):
-    #         continue
-    #     if i + 3 not in set(area_a.indices):
-    #         continue
+    for i in range(min(area_a.indices), max(area_a.indices)):
+        if i + 3 not in set(area_a.indices):
+            continue
+        rcv_burst_1101 = flip_bits(cw, [i, i + 1, i + 3])
+        corrected, ok, ev = code.decode(rcv_burst_1101)
 
-    #     rcv_burst_1111 = flip_bits(cw, [i, i + 1, i + 2, i + 3])
-    #     corrected, ok, ev = code.decode(rcv_burst_111)
+        print(f"Error positions burst_1101: {[i, i + 1, i + 3]}")
+        print(f"data:      {data}")
+        print(f"rcv:       {rcv_burst_1101}")
+        print(f"corrected: {corrected}")
+        print(f"ok:        {ok}")
+        print(f"ev:        {ev}")
 
-    #     print(f"Error positions burst_1111: {[i, i + 1, i + 2, i  + 3]}")
-    #     print(f"data:      {data}")
-    #     print(f"rcv:       {rcv_burst_1111}")
-    #     print(f"corrected: {corrected}")
-    #     print(f"ok:        {ok}")
-    #     print(f"ev:        {ev}")
+        # assert not ok
+        # assert ev is None
+        # assert corrected == rcv_burst_1101  # No Correction
 
-    #     # assert not ok
-    #     # assert ev is None
-    #     # assert corrected == rcv_burst_1111  # No Correction
-    #     assert ok
-    #     assert ev is not None
-    #     assert corrected != rcv_burst_1111  # No Correction
+        assert ok
+        assert ev is not None
+        assert corrected != rcv_burst_1101  # Correction
+        assert corrected == cw  # Perfect Correction
+
+    # All 4-bit burst erros in area A must be detecet and must not be corrected.
+    for i in range(min(area_a.indices), max(area_a.indices)):
+        if i + 3 not in set(area_a.indices):
+            continue
+
+        rcv_burst_1111 = flip_bits(cw, [i, i + 1, i + 2, i + 3])
+        corrected, ok, ev = code.decode(rcv_burst_1111)
+
+        print(f"Error positions burst_1111: {[i, i + 1, i + 2, i  + 3]}")
+        print(f"data:      {data}")
+        print(f"rcv:       {rcv_burst_1111}")
+        print(f"corrected: {corrected}")
+        print(f"ok:        {ok}")
+        print(f"ev:        {ev}")
+
+        # assert not ok
+        # assert ev is None
+        # assert corrected == rcv_burst_1111  # No Correction
+        
+        assert ok
+        assert ev is not None
+        assert corrected != rcv_burst_1111  # Correction
+        assert corrected == cw  # Perfect Correction

@@ -57,6 +57,8 @@ class ControlSpec:
       'double_adjacent'         -> 2 adjacent errors (i and i+1 within the area)
       'burst<=L'                -> any contiguous burst of length 2..L within the area
       'burst==L'                -> any contiguous burst of exactly length L within the area
+            'span_burst<=L'           -> any error pattern whose span length is 2..L (first & last bits in span flipped; interior bits arbitrary)
+            'span_burst==L'           -> any error pattern whose span length is exactly L (first & last bits flipped; interior bits arbitrary)
     Provide parameters via the params dict for the burst length L.
     """
 
@@ -130,6 +132,46 @@ def enumerate_bursts(indices: Iterable[int], length: int, exact: bool = False) -
     return out
 
 
+def enumerate_burst_spans(indices: Iterable[int], length: int, exact: bool = False) -> List[ErrorPattern]:
+    """Enumerate burst *spans* (classic burst definition) over given indices.
+
+    A burst of span L is any error pattern whose leftmost and rightmost erroneous bits
+    are exactly L-1 positions apart (i.e. they occupy a window of length L) and both
+    endpoints are in error; interior bits (if any) may be either error or not. For L=2
+    this degenerates to a solid adjacent double. For L>2, all 2^(L-2) interior
+    combinations are produced.
+
+    If exact=False, include all spans with L' in [2, length]; else only spans of L.
+    Returned patterns are tuples of absolute bit indices (sorted increasing).
+    """
+    s = sorted(_as_set(indices))
+    runs = _contiguous_runs(s)
+    patterns: Set[ErrorPattern] = set()
+    span_lengths = [length] if exact else list(range(2, max(2, length) + 1))
+    for (a, b) in runs:
+        run_len = b - a + 1
+        for L in span_lengths:
+            if L > run_len:
+                continue
+            for start in range(a, b - L + 2):
+                window = list(range(start, start + L))
+                if L == 2:
+                    patterns.add(tuple(window))  # only solid 2-burst
+                    continue
+                interior = window[1:-1]
+                interior_count = L - 2
+                # Enumerate all subsets of interior positions (0 .. 2^(L-2)-1)
+                for mask in range(1 << interior_count):
+                    pat = [window[0]]
+                    for j, idx in enumerate(interior):
+                        if mask & (1 << j):
+                            pat.append(idx)
+                    pat.append(window[-1])
+                    patterns.add(tuple(pat))
+    # Return in deterministic order: sort by length then lexicographically
+    return sorted(patterns, key=lambda ev: (len(ev), ev))
+
+
 def enumerate_error_patterns(spec: ControlSpec, model: str) -> List[ErrorPattern]:
     if model == "single":
         return enumerate_single_errors(spec.area.indices)
@@ -145,6 +187,14 @@ def enumerate_error_patterns(spec: ControlSpec, model: str) -> List[ErrorPattern
             return enumerate_bursts(spec.area.indices, L, exact=False)
         elif model == "burst==L":
             return enumerate_bursts(spec.area.indices, L, exact=True)
+    if model.startswith("span_burst"):
+        if spec.params is None or "L" not in spec.params:
+            raise ValueError("span_burst model requires params={'L': int}")
+        L = int(spec.params["L"])  # Span length definition
+        if model == "span_burst<=L":
+            return enumerate_burst_spans(spec.area.indices, L, exact=False)
+        elif model == "span_burst==L":
+            return enumerate_burst_spans(spec.area.indices, L, exact=True)
     raise ValueError(f"Unsupported model '{model}'")
 
 
