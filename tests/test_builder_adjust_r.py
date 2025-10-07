@@ -11,7 +11,11 @@ def test_builder_adjusts_r_start_when_area_indices_extend_past_k(capfd):
     code = builder.build(min_r=1, max_r=8, max_attempts_per_r=500)
     out, _ = capfd.readouterr()
     assert code.r >= 4
-    # Either adjustment message printed or initial min_r (1) was raised to >=4 silently.
-    # Prefer to see the message, but don't fail if constraints already forced r_start.
-    # We still assert that the log includes the final min_r line with min_r>=4.
-    assert f"min_r={code.r}" in out or "Adjusted r_start" in out
+    # Ensure the starting redundancy actually used (r_start) was >= required threshold.
+    # Builder log prints: '... r_start=<value> ...'. Accept either an explicit adjustment line
+    # or simply the presence of r_start with adequate value.
+    import re
+    m = re.search(r"r_start=(\d+)", out)
+    assert m, f"Did not find r_start in builder log: {out}"
+    used_r_start = int(m.group(1))
+    assert used_r_start >= 4

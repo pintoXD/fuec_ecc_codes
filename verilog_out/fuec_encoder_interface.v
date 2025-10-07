@@ -1,9 +1,9 @@
 module fuec_encoder_interface (
-    input wire [7:0] data,
-    output wire [3:0] redundancy
+    input wire [31:0] data,
+    output wire [15:0] redundancy
 );
     
-    fuec_encoder_12_8 fuec_encoder (
+    fuec_encoder_48_32 fuec_encoder (
         .d(data),
         .p(redundancy)
         .cw()

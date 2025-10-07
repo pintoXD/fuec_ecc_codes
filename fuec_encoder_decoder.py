@@ -29,6 +29,7 @@ Notes and scope
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 import random
 import csv
@@ -368,6 +369,89 @@ class FUECCode:
                 expr = " ^ ".join(sels)
             lines.append(f"wire flip_{i} = {expr};  // corrected bit: r[{i}] ^ flip_{i}")
         return "\n".join(lines)
+
+    # --- Persistence helpers ---
+    def to_dict(self) -> Dict[str, object]:
+        """Return a JSON-serializable dictionary describing this code.
+
+        Fields:
+          version: format version for forward compatibility.
+          n,k,r,data_positions,parity_positions,columns
+          correctable_map: mapping of syndrome (as decimal string) -> list of bit indices
+        """
+        return {
+            "version": 1,
+            "n": self.n,
+            "k": self.k,
+            "r": self.r,
+            "data_positions": list(self.data_positions),
+            "parity_positions": list(self.parity_positions),
+            "columns": list(self.columns),
+            "correctable_map": {str(s): list(ev) for s, ev in self.correctable_map.items()},
+        }
+
+    @staticmethod
+    def from_dict(d: Dict[str, object]) -> "FUECCode":
+        """Reconstruct a FUECCode previously produced by to_dict()."""
+        version = d.get("version", 1)
+        if version != 1:
+            raise ValueError(f"Unsupported persisted code version: {version}")
+        correctable_map_raw = d["correctable_map"]  # type: ignore[index]
+        if not isinstance(correctable_map_raw, dict):
+            raise TypeError("correctable_map must be a dict in persisted data")
+        correctable_map: Dict[int, ErrorPattern] = {}
+        for k_str, ev_list in correctable_map_raw.items():  # type: ignore[assignment]
+            s_val = int(k_str)
+            if not isinstance(ev_list, list):
+                raise TypeError("error pattern must be a list")
+            correctable_map[s_val] = tuple(int(x) for x in ev_list)
+        return FUECCode(
+            n=int(d["n"]),
+            k=int(d["k"]),
+            r=int(d["r"]),
+            data_positions=tuple(int(x) for x in d["data_positions"]),
+            parity_positions=tuple(int(x) for x in d["parity_positions"]),
+            columns=tuple(int(x) for x in d["columns"]),
+            correctable_map=correctable_map,
+        )
+
+    def save_json(self, path: str) -> None:
+        """Persist this code as JSON (portable, human-readable)."""
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    @staticmethod
+    def load_json(path: str) -> "FUECCode":
+        """Load a previously saved JSON code description."""
+        with open(path, "r", encoding="utf-8") as f:
+            d = json.load(f)
+        return FUECCode.from_dict(d)
+
+    # Convenience helpers for integer-based IO ---------------------------------
+    def encode_int(self, data_value: int) -> List[int]:
+        """Encode a data word supplied as integer with bit 0 = d0 (LSB of list).
+
+        Returns codeword as list of bits length n.
+        """
+        bits = [ (data_value >> i) & 1 for i in range(self.k) ]
+        return self.encode(bits)
+
+    def decode_to_int(self, received: Sequence[int]) -> Tuple[int, bool, Optional[ErrorPattern]]:
+        """Decode codeword bits; on success return (data_value, is_valid, error_pattern).
+
+        data_value is reconstructed assuming data_positions order maps to d0..d{k-1} with bit i = d_i.
+        """
+        corrected, ok, ev = self.decode(received)
+        # Extract data bits back to integer
+        pos_to_didx: Dict[int, int] = {pos: di for di, pos in enumerate(self.data_positions)}
+        data_bits: List[int] = [0]*self.k
+        for pos in self.data_positions:
+            data_bits[pos_to_didx[pos]] = corrected[pos]
+        val = 0
+        for i, b in enumerate(data_bits):
+            if b:
+                val |= (1 << i)
+        return val, ok, ev
 
     # --- Encoder parity equations ---
     def encoder_equations(self, as_data_symbols: bool = True, symbol_prefix: str = "d") -> str:
@@ -892,7 +976,7 @@ def make_example_code() -> FUECCode:
     # ]
     # builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1234))
     
-    example_no = 3
+    example_no = 4
     if example_no == 1:
         k = 12
         r_bits = 6
@@ -939,6 +1023,15 @@ def make_example_code() -> FUECCode:
                 detect=["double_adjacent"],
             ),
         ]
+    elif example_no == 4:
+        k = 32
+        r_bits = 16
+        area_a = Area("A", tuple(range(0, k + r_bits)))
+        specs = [
+            ControlSpec(
+                area=area_a, correct=["single", "span_burst<=L"], detect=[], params={"L": 4}
+            )
+        ]
     else:
         k = 16
         r_bits = 12
@@ -950,7 +1043,7 @@ def make_example_code() -> FUECCode:
         ]
     
     
-    builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1234))
+    builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1209))
 
     return builder.build(min_r=r_bits, max_r=r_bits, max_attempts_per_r=1000000)
 
