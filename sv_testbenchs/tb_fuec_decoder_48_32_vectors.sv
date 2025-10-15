@@ -453,6 +453,17 @@ module tb_fuec_decoder_48_32_vectors;
       check_codeword_masking_and_correction(patterns[i]);
     end
     if (errors == 0) $display("All %0d patterns PASSED.", NUM_PATTERNS); else $display("%0d patterns FAILED.", errors);
+
+    #30;
+
+    $display("----- Now testing single case -----");
+
+    r = 48'habf600120212;
+    #10;
+    $display("r=%b no_error=%0d corrected=%0d uncorrectable=%0d r_fix=%0h", r, no_error, corrected, uncorrectable, r_fix);
+    #10;
+
+
     $finish;
   end
 endmodule
