@@ -20,7 +20,7 @@ def code_48_32():
     area = Area("A", tuple(range(0, k + r)))
     specs = [
         ControlSpec(
-            area=area, correct=["single", "span_burst<=L"], detect=[], params={"L": 4}
+            area=area, correct=["single"], detect=["span_burst<=L"], params={"L": 2}
         )
     ]
     builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1209))

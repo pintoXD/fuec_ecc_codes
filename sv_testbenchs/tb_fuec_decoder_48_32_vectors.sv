@@ -424,7 +424,7 @@ module tb_fuec_decoder_48_32_vectors;
         end
       end else begin
         // Expect correction: corrected=1, r_fix back to zero, no_error=0
-        $display("[TEST][mask=%b] r=%b no_error=%0d corrected=%0d uncorrectable=%0d r_fix=%0h", mask, r, no_error, corrected, uncorrectable, r_fix);
+        $display("[TEST][mask=%b] r=%0h no_error=%0d corrected=%0d uncorrectable=%0d r_fix=%0h", mask, r, no_error, corrected, uncorrectable, r_fix);
         if (!(corrected && !no_error && !uncorrectable && r_fix == code_word)) begin
           $display("[FAIL][mask=%b] no_error=%0d corrected=%0d uncorrectable=%0d r_fix=%b", mask, no_error, corrected, uncorrectable, r_fix);
           errors = errors + 1;
@@ -460,7 +460,7 @@ module tb_fuec_decoder_48_32_vectors;
 
     r = 48'habf600120212;
     #10;
-    $display("r=%b no_error=%0d corrected=%0d uncorrectable=%0d r_fix=%0h", r, no_error, corrected, uncorrectable, r_fix);
+    $display("r=%0h no_error=%0d corrected=%0d uncorrectable=%0d r_fix=%0h", r, no_error, corrected, uncorrectable, r_fix);
     #10;
 
 

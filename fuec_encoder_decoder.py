@@ -976,7 +976,7 @@ def make_example_code() -> FUECCode:
     # ]
     # builder = FUECBuilder(k=k, specs=specs, rng=random.Random(1234))
     
-    example_no = 4
+    example_no = 5
     if example_no == 1:
         k = 12
         r_bits = 6
@@ -1030,6 +1030,15 @@ def make_example_code() -> FUECCode:
         specs = [
             ControlSpec(
                 area=area_a, correct=["single", "span_burst<=L"], detect=[], params={"L": 4}
+            )
+        ]
+    elif example_no == 5:
+        k = 32
+        r_bits = 16
+        area_a = Area("A", tuple(range(0, k + r_bits)))
+        specs = [
+            ControlSpec(
+                area=area_a, correct=["single"], detect=[], params={}
             )
         ]
     else:
