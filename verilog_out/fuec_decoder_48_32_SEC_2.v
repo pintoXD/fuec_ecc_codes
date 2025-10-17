@@ -3,23 +3,22 @@ module fuec_decoder_48_32 (
     input  wire [47:0] r,
     output wire [15:0] s,
     output wire [47:0] r_fix,
-    output wire [47:0] pos_error,
     output wire        no_error,
     output wire        corrected,
     output wire        uncorrectable
 );
 
     // Parity-check matrix rows HROWj (bit i true means r[i] participates in s[j])
-    localparam [47:0] HROW0  = 48'b000000000000000111100101001111101111111000010100;
-    localparam [47:0] HROW1  = 48'b000000000000001001101110010000011000101001011110;
-    localparam [47:0] HROW2  = 48'b000000000000010010110001100101110001110111000010;
-    localparam [47:0] HROW3  = 48'b000000000000100000110001001001100011000101001101;
-    localparam [47:0] HROW4  = 48'b000000000001000001010010100101100101101101100011;
-    localparam [47:0] HROW5  = 48'b000000000010000001011100110101010111011000101010;
-    localparam [47:0] HROW6  = 48'b000000000100000011111010111110100110111001101100;
-    localparam [47:0] HROW7  = 48'b000000001000000001000101011000110010100110110101;
-    localparam [47:0] HROW8  = 48'b000000010000000011010110011011101101111100101010;
-    localparam [47:0] HROW9  = 48'b000000100000000010001000100100001011000110111101;
+    localparam [47:0] HROW0 = 48'b000000000000000111100101001111101111111000010100;
+    localparam [47:0] HROW1 = 48'b000000000000001001101110010000011000101001011110;
+    localparam [47:0] HROW2 = 48'b000000000000010010110001100101110001110111000010;
+    localparam [47:0] HROW3 = 48'b000000000000100000110001001001100011000101001101;
+    localparam [47:0] HROW4 = 48'b000000000001000001010010100101100101101101100011;
+    localparam [47:0] HROW5 = 48'b000000000010000001011100110101010111011000101010;
+    localparam [47:0] HROW6 = 48'b000000000100000011111010111110100110111001101100;
+    localparam [47:0] HROW7 = 48'b000000001000000001000101011000110010100110110101;
+    localparam [47:0] HROW8 = 48'b000000010000000011010110011011101101111100101010;
+    localparam [47:0] HROW9 = 48'b000000100000000010001000100100001011000110111101;
     localparam [47:0] HROW10 = 48'b000001000000000011110001101000111011011010001011;
     localparam [47:0] HROW11 = 48'b000010000000000010111100110110100101010110011100;
     localparam [47:0] HROW12 = 48'b000100000000000000100001011110011111001101101000;
@@ -463,74 +462,59 @@ module fuec_decoder_48_32 (
     wire flip_45 = sel_e_45 ^ sel_e_42_45 ^ sel_e_43_45 ^ sel_e_42_43_45 ^ sel_e_44_45 ^ sel_e_42_44_45 ^ sel_e_43_44_45 ^ sel_e_42_43_44_45 ^ sel_e_45_46 ^ sel_e_43_45_46 ^ sel_e_44_45_46 ^ sel_e_43_44_45_46 ^ sel_e_45_47 ^ sel_e_44_45_47 ^ sel_e_45_46_47 ^ sel_e_44_45_46_47;
     wire flip_46 = sel_e_46 ^ sel_e_43_46 ^ sel_e_44_46 ^ sel_e_43_44_46 ^ sel_e_45_46 ^ sel_e_43_45_46 ^ sel_e_44_45_46 ^ sel_e_43_44_45_46 ^ sel_e_46_47 ^ sel_e_44_46_47 ^ sel_e_45_46_47 ^ sel_e_44_45_46_47;
     wire flip_47 = sel_e_47 ^ sel_e_44_47 ^ sel_e_45_47 ^ sel_e_44_45_47 ^ sel_e_46_47 ^ sel_e_44_46_47 ^ sel_e_45_46_47 ^ sel_e_44_45_46_47;
-    // assign r_fix[0] = r[0] ^ flip_0;
-    // assign r_fix[1] = r[1] ^ flip_1;
-    // assign r_fix[2] = r[2] ^ flip_2;
-    // assign r_fix[3] = r[3] ^ flip_3;
-    // assign r_fix[4] = r[4] ^ flip_4;
-    // assign r_fix[5] = r[5] ^ flip_5;
-    // assign r_fix[6] = r[6] ^ flip_6;
-    // assign r_fix[7] = r[7] ^ flip_7;
-    // assign r_fix[8] = r[8] ^ flip_8;
-    // assign r_fix[9] = r[9] ^ flip_9;
-    // assign r_fix[10] = r[10] ^ flip_10;
-    // assign r_fix[11] = r[11] ^ flip_11;
-    // assign r_fix[12] = r[12] ^ flip_12;
-    // assign r_fix[13] = r[13] ^ flip_13;
-    // assign r_fix[14] = r[14] ^ flip_14;
-    // assign r_fix[15] = r[15] ^ flip_15;
-    // assign r_fix[16] = r[16] ^ flip_16;
-    // assign r_fix[17] = r[17] ^ flip_17;
-    // assign r_fix[18] = r[18] ^ flip_18;
-    // assign r_fix[19] = r[19] ^ flip_19;
-    // assign r_fix[20] = r[20] ^ flip_20;
-    // assign r_fix[21] = r[21] ^ flip_21;
-    // assign r_fix[22] = r[22] ^ flip_22;
-    // assign r_fix[23] = r[23] ^ flip_23;
-    // assign r_fix[24] = r[24] ^ flip_24;
-    // assign r_fix[25] = r[25] ^ flip_25;
-    // assign r_fix[26] = r[26] ^ flip_26;
-    // assign r_fix[27] = r[27] ^ flip_27;
-    // assign r_fix[28] = r[28] ^ flip_28;
-    // assign r_fix[29] = r[29] ^ flip_29;
-    // assign r_fix[30] = r[30] ^ flip_30;
-    // assign r_fix[31] = r[31] ^ flip_31;
-    // assign r_fix[32] = r[32] ^ flip_32;
-    // assign r_fix[33] = r[33] ^ flip_33;
-    // assign r_fix[34] = r[34] ^ flip_34;
-    // assign r_fix[35] = r[35] ^ flip_35;
-    // assign r_fix[36] = r[36] ^ flip_36;
-    // assign r_fix[37] = r[37] ^ flip_37;
-    // assign r_fix[38] = r[38] ^ flip_38;
-    // assign r_fix[39] = r[39] ^ flip_39;
-    // assign r_fix[40] = r[40] ^ flip_40;
-    // assign r_fix[41] = r[41] ^ flip_41;
-    // assign r_fix[42] = r[42] ^ flip_42;
-    // assign r_fix[43] = r[43] ^ flip_43;
-    // assign r_fix[44] = r[44] ^ flip_44;
-    // assign r_fix[45] = r[45] ^ flip_45;
-    // assign r_fix[46] = r[46] ^ flip_46;
-    // assign r_fix[47] = r[47] ^ flip_47;
-
-    // Aggregate flips into a vector to reduce fanout and enable vector operations
-    wire [47:0] flip_bus = {flip_47, flip_46, flip_45, flip_44, flip_43, flip_42, flip_41, flip_40,
-                        flip_39, flip_38, flip_37, flip_36, flip_35, flip_34, flip_33, flip_32,
-                        flip_31, flip_30, flip_29, flip_28, flip_27, flip_26, flip_25, flip_24,
-                        flip_23, flip_22, flip_21, flip_20, flip_19, flip_18, flip_17, flip_16,
-                        flip_15, flip_14, flip_13, flip_12, flip_11, flip_10, flip_9,  flip_8,
-                        flip_7,  flip_6,  flip_5,  flip_4,  flip_3,  flip_2,  flip_1,  flip_0};
-
-    // Vectorized correction
-    assign r_fix = r ^ flip_bus;
-    assign pos_error = flip_bus;
+    assign r_fix[0] = r[0] ^ flip_0;
+    assign r_fix[1] = r[1] ^ flip_1;
+    assign r_fix[2] = r[2] ^ flip_2;
+    assign r_fix[3] = r[3] ^ flip_3;
+    assign r_fix[4] = r[4] ^ flip_4;
+    assign r_fix[5] = r[5] ^ flip_5;
+    assign r_fix[6] = r[6] ^ flip_6;
+    assign r_fix[7] = r[7] ^ flip_7;
+    assign r_fix[8] = r[8] ^ flip_8;
+    assign r_fix[9] = r[9] ^ flip_9;
+    assign r_fix[10] = r[10] ^ flip_10;
+    assign r_fix[11] = r[11] ^ flip_11;
+    assign r_fix[12] = r[12] ^ flip_12;
+    assign r_fix[13] = r[13] ^ flip_13;
+    assign r_fix[14] = r[14] ^ flip_14;
+    assign r_fix[15] = r[15] ^ flip_15;
+    assign r_fix[16] = r[16] ^ flip_16;
+    assign r_fix[17] = r[17] ^ flip_17;
+    assign r_fix[18] = r[18] ^ flip_18;
+    assign r_fix[19] = r[19] ^ flip_19;
+    assign r_fix[20] = r[20] ^ flip_20;
+    assign r_fix[21] = r[21] ^ flip_21;
+    assign r_fix[22] = r[22] ^ flip_22;
+    assign r_fix[23] = r[23] ^ flip_23;
+    assign r_fix[24] = r[24] ^ flip_24;
+    assign r_fix[25] = r[25] ^ flip_25;
+    assign r_fix[26] = r[26] ^ flip_26;
+    assign r_fix[27] = r[27] ^ flip_27;
+    assign r_fix[28] = r[28] ^ flip_28;
+    assign r_fix[29] = r[29] ^ flip_29;
+    assign r_fix[30] = r[30] ^ flip_30;
+    assign r_fix[31] = r[31] ^ flip_31;
+    assign r_fix[32] = r[32] ^ flip_32;
+    assign r_fix[33] = r[33] ^ flip_33;
+    assign r_fix[34] = r[34] ^ flip_34;
+    assign r_fix[35] = r[35] ^ flip_35;
+    assign r_fix[36] = r[36] ^ flip_36;
+    assign r_fix[37] = r[37] ^ flip_37;
+    assign r_fix[38] = r[38] ^ flip_38;
+    assign r_fix[39] = r[39] ^ flip_39;
+    assign r_fix[40] = r[40] ^ flip_40;
+    assign r_fix[41] = r[41] ^ flip_41;
+    assign r_fix[42] = r[42] ^ flip_42;
+    assign r_fix[43] = r[43] ^ flip_43;
+    assign r_fix[44] = r[44] ^ flip_44;
+    assign r_fix[45] = r[45] ^ flip_45;
+    assign r_fix[46] = r[46] ^ flip_46;
+    assign r_fix[47] = r[47] ^ flip_47;
 
     // Status flags
-    // assign no_error = ~(|s);
     assign no_error = ~(|s);
-    // wire any_selector = sel_e_32 | sel_e_33 | sel_e_32_33 | sel_e_34 | sel_e_32_34 | sel_e_33_34 | sel_e_32_33_34 | sel_e_35 | sel_e_32_35 | sel_e_33_35 | sel_e_32_33_35 | sel_e_34_35 | sel_e_32_34_35 | sel_e_33_34_35 | sel_e_32_33_34_35 | sel_e_36 | sel_e_33_36 | sel_e_34_36 | sel_e_33_34_36 | sel_e_35_36 | sel_e_33_35_36 | sel_e_34_35_36 | sel_e_33_34_35_36 | sel_e_37 | sel_e_34_37 | sel_e_35_37 | sel_e_34_35_37 | sel_e_36_37 | sel_e_34_36_37 | sel_e_35_36_37 | sel_e_34_35_36_37 | sel_e_38 | sel_e_35_38 | sel_e_36_38 | sel_e_35_36_38 | sel_e_37_38 | sel_e_35_37_38 | sel_e_36_37_38 | sel_e_35_36_37_38 | sel_e_39 | sel_e_36_39 | sel_e_37_39 | sel_e_36_37_39 | sel_e_38_39 | sel_e_36_38_39 | sel_e_37_38_39 | sel_e_36_37_38_39 | sel_e_40 | sel_e_37_40 | sel_e_18 | sel_e_38_40 | sel_e_37_38_40 | sel_e_39_40 | sel_e_37_39_40 | sel_e_38_39_40 | sel_e_37_38_39_40 | sel_e_13_15 | sel_e_41 | sel_e_38_41 | sel_e_39_41 | sel_e_38_39_41 | sel_e_40_41 | sel_e_22_23_24 | sel_e_38_40_41 | sel_e_39_40_41 | sel_e_38_39_40_41 | sel_e_42 | sel_e_4_7 | sel_e_39_42 | sel_e_40_42 | sel_e_39_40_42 | sel_e_41_42 | sel_e_2_3_5 | sel_e_39_41_42 | sel_e_0 | sel_e_5_7_8 | sel_e_40_41_42 | sel_e_39_40_41_42 | sel_e_43 | sel_e_40_43 | sel_e_0_1_2 | sel_e_41_43 | sel_e_27 | sel_e_40_41_43 | sel_e_6_7_9 | sel_e_42_43 | sel_e_40_42_43 | sel_e_41_42_43 | sel_e_40_41_42_43 | sel_e_1_2 | sel_e_44 | sel_e_6 | sel_e_41_44 | sel_e_42_44 | sel_e_20_23 | sel_e_4_6_7 | sel_e_41_42_44 | sel_e_15_18 | sel_e_5_6_7_8 | sel_e_13 | sel_e_15 | sel_e_24_26_27 | sel_e_43_44 | sel_e_9_10_11 | sel_e_41_43_44 | sel_e_19_20_22 | sel_e_7_9 | sel_e_42_43_44 | sel_e_24_26 | sel_e_41_42_43_44 | sel_e_28_29_31 | sel_e_45 | sel_e_19_22 | sel_e_8_9_10 | sel_e_42_45 | sel_e_26_28 | sel_e_9_10_12 | sel_e_28_30_31 | sel_e_43_45 | sel_e_11_12_13 | sel_e_42_43_45 | sel_e_22_24 | sel_e_23 | sel_e_15_16_17 | sel_e_26_27_28 | sel_e_3_6 | sel_e_15_16_17_18 | sel_e_44_45 | sel_e_1_2_3 | sel_e_23_24_26 | sel_e_27_29_30 | sel_e_42_44_45 | sel_e_0_1_2_3 | sel_e_43_44_45 | sel_e_16_17_18 | sel_e_7_8_10 | sel_e_2_5 | sel_e_16_17 | sel_e_29_30 | sel_e_29_30_32 | sel_e_0_3 | sel_e_8_11 | sel_e_20 | sel_e_18_20 | sel_e_42_43_44_45 | sel_e_11_12 | sel_e_3 | sel_e_46 | sel_e_7_8_9 | sel_e_20_21_23 | sel_e_8_9_10_11 | sel_e_25_26_28 | sel_e_9_10_11_12 | sel_e_43_46 | sel_e_12_15 | sel_e_4_5_6 | sel_e_12_13 | sel_e_6_8 | sel_e_22_24_25 | sel_e_17_18 | sel_e_5_6_7 | sel_e_17 | sel_e_19_20_21_22 | sel_e_23_25 | sel_e_31_32_34 | sel_e_31_34 | sel_e_31_32_33_34 | sel_e_31_33_34 | sel_e_31_32 | sel_e_31 | sel_e_31_32_33 | sel_e_31_33 | sel_e_25_26_27_28 | sel_e_44_46 | sel_e_6_7_8_9 | sel_e_1_3_4 | sel_e_28_29 | sel_e_23_24_25_26 | sel_e_18_21 | sel_e_21 | sel_e_21_22_23_24 | sel_e_43_44_46 | sel_e_4_5 | sel_e_15_17 | sel_e_27_28_29 | sel_e_8 | sel_e_15_17_18 | sel_e_5_7 | sel_e_12_13_15 | sel_e_2_3_4 | sel_e_12 | sel_e_45_46 | sel_e_2_4 | sel_e_25 | sel_e_11 | sel_e_22_23_24_25 | sel_e_13_16 | sel_e_15_16_18 | sel_e_27_28_30 | sel_e_15_16 | sel_e_7_10 | sel_e_3_4_5 | sel_e_43_45_46 | sel_e_28_30 | sel_e_25_27 | sel_e_18_20_21 | sel_e_1_4 | sel_e_20_21 | sel_e_44_45_46 | sel_e_16 | sel_e_13_15_16 | sel_e_19_21_22 | sel_e_16_18 | sel_e_26_29 | sel_e_24_25_26_27 | sel_e_3_4_5_6 | sel_e_17_18_20 | sel_e_29_30_31_32 | sel_e_29_30_31 | sel_e_11_13 | sel_e_17_20 | sel_e_43_44_45_46 | sel_e_9_10 | sel_e_21_22_24 | sel_e_21_23 | sel_e_24_25_26 | sel_e_26_27_29 | sel_e_47 | sel_e_28_31 | sel_e_25_26_27 | sel_e_10_12_13 | sel_e_3_4_6 | sel_e_25_26 | sel_e_9_11_12 | sel_e_21_22 | sel_e_16_18_19 | sel_e_7_8_9_10 | sel_e_16_19 | sel_e_14_15 | sel_e_17_19_20 | sel_e_21_23_24 | sel_e_8_9_11 | sel_e_13_14 | sel_e_17_18_19_20 | sel_e_44_47 | sel_e_10_12 | sel_e_2_4_5 | sel_e_24_25 | sel_e_3_4 | sel_e_27_29 | sel_e_22_23_25 | sel_e_8_10 | sel_e_19_20_21 | sel_e_18_19_20_21 | sel_e_20_21_22_23 | sel_e_13_14_15 | sel_e_14 | sel_e_1_2_3_4 | sel_e_29_32 | sel_e_29 | sel_e_24_25_27 | sel_e_45_47 | sel_e_14_16_17 | sel_e_21_24 | sel_e_21_22_23 | sel_e_6_9 | sel_e_1_2_4 | sel_e_30_32_33 | sel_e_30_33 | sel_e_30_32 | sel_e_30 | sel_e_25_27_28 | sel_e_23_25_26 | sel_e_11_12_14 | sel_e_5_8 | sel_e_4 | sel_e_25_28 | sel_e_19_21 | sel_e_10_11 | sel_e_2_3_4_5 | sel_e_18_19_21 | sel_e_7 | sel_e_27_30 | sel_e_44_45_47 | sel_e_11_12_13_14 | sel_e_26_27_28_29 | sel_e_17_19 | sel_e_9 | sel_e_17_18_19 | sel_e_20_21_22 | sel_e_14_15_16_17 | sel_e_5_6_8 | sel_e_26_28_29 | sel_e_22_25 | sel_e_10_11_13 | sel_e_4_6 | sel_e_28_29_30_31 | sel_e_23_24_25 | sel_e_6_7 | sel_e_46_47 | sel_e_16_17_19 | sel_e_16_17_18_19 | sel_e_18_19_20 | sel_e_19_20 | sel_e_0_1 | sel_e_14_15_17 | sel_e_1 | sel_e_12_14 | sel_e_27_28 | sel_e_12_13_14_15 | sel_e_23_26 | sel_e_2 | sel_e_0_2 | sel_e_3_5 | sel_e_10 | sel_e_28 | sel_e_20_22_23 | sel_e_44_46_47 | sel_e_12_13_14 | sel_e_12_14_15 | sel_e_29_31 | sel_e_29_31_32 | sel_e_9_11 | sel_e_14_17 | sel_e_7_9_10 | sel_e_22 | sel_e_23_24 | sel_e_10_13 | sel_e_3_5_6 | sel_e_45_46_47 | sel_e_20_22 | sel_e_5_6 | sel_e_26_27 | sel_e_6_7_8 | sel_e_10_11_12_13 | sel_e_4_5_6_7 | sel_e_26 | sel_e_9_12 | sel_e_30_31_33 | sel_e_30_31_32_33 | sel_e_30_31 | sel_e_30_31_32 | sel_e_13_14_15_16 | sel_e_14_16 | sel_e_11_13_14 | sel_e_8_9 | sel_e_44_45_46_47 | sel_e_0_2_3 | sel_e_10_11_12 | sel_e_5 | sel_e_24 | sel_e_28_29_30 | sel_e_7_8 | sel_e_2_3 | sel_e_8_10_11 | sel_e_22_23 | sel_e_4_5_7 | sel_e_18_19 | sel_e_11_14 | sel_e_19 | sel_e_1_3 | sel_e_14_15_16 | sel_e_13_14_16 | sel_e_0_1_3 | sel_e_27_28_29_30 | sel_e_6_8_9 | sel_e_24_27;
-    // assign corrected = any_selector;
-    assign corrected = |flip_bus;
-    // assign uncorrectable = (|s) & ~any_selector;
-    assign uncorrectable = (|s) & ~(|flip_bus);
+    wire any_selector = sel_e_32 | sel_e_33 | sel_e_32_33 | sel_e_34 | sel_e_32_34 | sel_e_33_34 | sel_e_32_33_34 | sel_e_35 | sel_e_32_35 | sel_e_33_35 | sel_e_32_33_35 | sel_e_34_35 | sel_e_32_34_35 | sel_e_33_34_35 | sel_e_32_33_34_35 | sel_e_36 | sel_e_33_36 | sel_e_34_36 | sel_e_33_34_36 | sel_e_35_36 | sel_e_33_35_36 | sel_e_34_35_36 | sel_e_33_34_35_36 | sel_e_37 | sel_e_34_37 | sel_e_35_37 | sel_e_34_35_37 | sel_e_36_37 | sel_e_34_36_37 | sel_e_35_36_37 | sel_e_34_35_36_37 | sel_e_38 | sel_e_35_38 | sel_e_36_38 | sel_e_35_36_38 | sel_e_37_38 | sel_e_35_37_38 | sel_e_36_37_38 | sel_e_35_36_37_38 | sel_e_39 | sel_e_36_39 | sel_e_37_39 | sel_e_36_37_39 | sel_e_38_39 | sel_e_36_38_39 | sel_e_37_38_39 | sel_e_36_37_38_39 | sel_e_40 | sel_e_37_40 | sel_e_18 | sel_e_38_40 | sel_e_37_38_40 | sel_e_39_40 | sel_e_37_39_40 | sel_e_38_39_40 | sel_e_37_38_39_40 | sel_e_13_15 | sel_e_41 | sel_e_38_41 | sel_e_39_41 | sel_e_38_39_41 | sel_e_40_41 | sel_e_22_23_24 | sel_e_38_40_41 | sel_e_39_40_41 | sel_e_38_39_40_41 | sel_e_42 | sel_e_4_7 | sel_e_39_42 | sel_e_40_42 | sel_e_39_40_42 | sel_e_41_42 | sel_e_2_3_5 | sel_e_39_41_42 | sel_e_0 | sel_e_5_7_8 | sel_e_40_41_42 | sel_e_39_40_41_42 | sel_e_43 | sel_e_40_43 | sel_e_0_1_2 | sel_e_41_43 | sel_e_27 | sel_e_40_41_43 | sel_e_6_7_9 | sel_e_42_43 | sel_e_40_42_43 | sel_e_41_42_43 | sel_e_40_41_42_43 | sel_e_1_2 | sel_e_44 | sel_e_6 | sel_e_41_44 | sel_e_42_44 | sel_e_20_23 | sel_e_4_6_7 | sel_e_41_42_44 | sel_e_15_18 | sel_e_5_6_7_8 | sel_e_13 | sel_e_15 | sel_e_24_26_27 | sel_e_43_44 | sel_e_9_10_11 | sel_e_41_43_44 | sel_e_19_20_22 | sel_e_7_9 | sel_e_42_43_44 | sel_e_24_26 | sel_e_41_42_43_44 | sel_e_28_29_31 | sel_e_45 | sel_e_19_22 | sel_e_8_9_10 | sel_e_42_45 | sel_e_26_28 | sel_e_9_10_12 | sel_e_28_30_31 | sel_e_43_45 | sel_e_11_12_13 | sel_e_42_43_45 | sel_e_22_24 | sel_e_23 | sel_e_15_16_17 | sel_e_26_27_28 | sel_e_3_6 | sel_e_15_16_17_18 | sel_e_44_45 | sel_e_1_2_3 | sel_e_23_24_26 | sel_e_27_29_30 | sel_e_42_44_45 | sel_e_0_1_2_3 | sel_e_43_44_45 | sel_e_16_17_18 | sel_e_7_8_10 | sel_e_2_5 | sel_e_16_17 | sel_e_29_30 | sel_e_29_30_32 | sel_e_0_3 | sel_e_8_11 | sel_e_20 | sel_e_18_20 | sel_e_42_43_44_45 | sel_e_11_12 | sel_e_3 | sel_e_46 | sel_e_7_8_9 | sel_e_20_21_23 | sel_e_8_9_10_11 | sel_e_25_26_28 | sel_e_9_10_11_12 | sel_e_43_46 | sel_e_12_15 | sel_e_4_5_6 | sel_e_12_13 | sel_e_6_8 | sel_e_22_24_25 | sel_e_17_18 | sel_e_5_6_7 | sel_e_17 | sel_e_19_20_21_22 | sel_e_23_25 | sel_e_31_32_34 | sel_e_31_34 | sel_e_31_32_33_34 | sel_e_31_33_34 | sel_e_31_32 | sel_e_31 | sel_e_31_32_33 | sel_e_31_33 | sel_e_25_26_27_28 | sel_e_44_46 | sel_e_6_7_8_9 | sel_e_1_3_4 | sel_e_28_29 | sel_e_23_24_25_26 | sel_e_18_21 | sel_e_21 | sel_e_21_22_23_24 | sel_e_43_44_46 | sel_e_4_5 | sel_e_15_17 | sel_e_27_28_29 | sel_e_8 | sel_e_15_17_18 | sel_e_5_7 | sel_e_12_13_15 | sel_e_2_3_4 | sel_e_12 | sel_e_45_46 | sel_e_2_4 | sel_e_25 | sel_e_11 | sel_e_22_23_24_25 | sel_e_13_16 | sel_e_15_16_18 | sel_e_27_28_30 | sel_e_15_16 | sel_e_7_10 | sel_e_3_4_5 | sel_e_43_45_46 | sel_e_28_30 | sel_e_25_27 | sel_e_18_20_21 | sel_e_1_4 | sel_e_20_21 | sel_e_44_45_46 | sel_e_16 | sel_e_13_15_16 | sel_e_19_21_22 | sel_e_16_18 | sel_e_26_29 | sel_e_24_25_26_27 | sel_e_3_4_5_6 | sel_e_17_18_20 | sel_e_29_30_31_32 | sel_e_29_30_31 | sel_e_11_13 | sel_e_17_20 | sel_e_43_44_45_46 | sel_e_9_10 | sel_e_21_22_24 | sel_e_21_23 | sel_e_24_25_26 | sel_e_26_27_29 | sel_e_47 | sel_e_28_31 | sel_e_25_26_27 | sel_e_10_12_13 | sel_e_3_4_6 | sel_e_25_26 | sel_e_9_11_12 | sel_e_21_22 | sel_e_16_18_19 | sel_e_7_8_9_10 | sel_e_16_19 | sel_e_14_15 | sel_e_17_19_20 | sel_e_21_23_24 | sel_e_8_9_11 | sel_e_13_14 | sel_e_17_18_19_20 | sel_e_44_47 | sel_e_10_12 | sel_e_2_4_5 | sel_e_24_25 | sel_e_3_4 | sel_e_27_29 | sel_e_22_23_25 | sel_e_8_10 | sel_e_19_20_21 | sel_e_18_19_20_21 | sel_e_20_21_22_23 | sel_e_13_14_15 | sel_e_14 | sel_e_1_2_3_4 | sel_e_29_32 | sel_e_29 | sel_e_24_25_27 | sel_e_45_47 | sel_e_14_16_17 | sel_e_21_24 | sel_e_21_22_23 | sel_e_6_9 | sel_e_1_2_4 | sel_e_30_32_33 | sel_e_30_33 | sel_e_30_32 | sel_e_30 | sel_e_25_27_28 | sel_e_23_25_26 | sel_e_11_12_14 | sel_e_5_8 | sel_e_4 | sel_e_25_28 | sel_e_19_21 | sel_e_10_11 | sel_e_2_3_4_5 | sel_e_18_19_21 | sel_e_7 | sel_e_27_30 | sel_e_44_45_47 | sel_e_11_12_13_14 | sel_e_26_27_28_29 | sel_e_17_19 | sel_e_9 | sel_e_17_18_19 | sel_e_20_21_22 | sel_e_14_15_16_17 | sel_e_5_6_8 | sel_e_26_28_29 | sel_e_22_25 | sel_e_10_11_13 | sel_e_4_6 | sel_e_28_29_30_31 | sel_e_23_24_25 | sel_e_6_7 | sel_e_46_47 | sel_e_16_17_19 | sel_e_16_17_18_19 | sel_e_18_19_20 | sel_e_19_20 | sel_e_0_1 | sel_e_14_15_17 | sel_e_1 | sel_e_12_14 | sel_e_27_28 | sel_e_12_13_14_15 | sel_e_23_26 | sel_e_2 | sel_e_0_2 | sel_e_3_5 | sel_e_10 | sel_e_28 | sel_e_20_22_23 | sel_e_44_46_47 | sel_e_12_13_14 | sel_e_12_14_15 | sel_e_29_31 | sel_e_29_31_32 | sel_e_9_11 | sel_e_14_17 | sel_e_7_9_10 | sel_e_22 | sel_e_23_24 | sel_e_10_13 | sel_e_3_5_6 | sel_e_45_46_47 | sel_e_20_22 | sel_e_5_6 | sel_e_26_27 | sel_e_6_7_8 | sel_e_10_11_12_13 | sel_e_4_5_6_7 | sel_e_26 | sel_e_9_12 | sel_e_30_31_33 | sel_e_30_31_32_33 | sel_e_30_31 | sel_e_30_31_32 | sel_e_13_14_15_16 | sel_e_14_16 | sel_e_11_13_14 | sel_e_8_9 | sel_e_44_45_46_47 | sel_e_0_2_3 | sel_e_10_11_12 | sel_e_5 | sel_e_24 | sel_e_28_29_30 | sel_e_7_8 | sel_e_2_3 | sel_e_8_10_11 | sel_e_22_23 | sel_e_4_5_7 | sel_e_18_19 | sel_e_11_14 | sel_e_19 | sel_e_1_3 | sel_e_14_15_16 | sel_e_13_14_16 | sel_e_0_1_3 | sel_e_27_28_29_30 | sel_e_6_8_9 | sel_e_24_27;
+    assign corrected = any_selector;
+    assign uncorrectable = (|s) & ~any_selector;
 
 endmodule
